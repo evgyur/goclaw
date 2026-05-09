@@ -51,9 +51,10 @@ func extFromMime(mime string) string {
 	}
 }
 
-// openaiTranscriptionCall sends audio to OpenAI's /v1/audio/transcriptions
-// endpoint using multipart/form-data. The endpoint returns only the
-// transcribed text and does not provide token usage counters.
+// openaiTranscriptionCall sends audio to an OpenAI-compatible
+// /v1/audio/transcriptions endpoint using multipart/form-data. It requests
+// verbose segment timestamps and falls back to plain text when segments are
+// absent. Transcription endpoints do not provide token usage counters.
 func openaiTranscriptionCall(ctx context.Context, apiKey, baseURL, model string, data []byte, mime string) (*providers.ChatResponse, error) {
 	var buf bytes.Buffer
 	w := multipart.NewWriter(&buf)
@@ -67,6 +68,12 @@ func openaiTranscriptionCall(ctx context.Context, apiKey, baseURL, model string,
 	}
 	if err := w.WriteField("model", model); err != nil {
 		return nil, fmt.Errorf("write model field: %w", err)
+	}
+	if err := w.WriteField("response_format", "verbose_json"); err != nil {
+		return nil, fmt.Errorf("write response_format field: %w", err)
+	}
+	if err := w.WriteField("timestamp_granularities[]", "segment"); err != nil {
+		return nil, fmt.Errorf("write timestamp_granularities field: %w", err)
 	}
 	if err := w.Close(); err != nil {
 		return nil, fmt.Errorf("close multipart: %w", err)
@@ -96,7 +103,12 @@ func openaiTranscriptionCall(ctx context.Context, apiKey, baseURL, model string,
 	}
 
 	var out struct {
-		Text string `json:"text"`
+		Text     string `json:"text"`
+		Segments []struct {
+			Start float64 `json:"start"`
+			End   float64 `json:"end"`
+			Text  string  `json:"text"`
+		} `json:"segments"`
 	}
 	if err := json.Unmarshal(respBody, &out); err != nil {
 		return nil, fmt.Errorf("parse response: %w", err)
@@ -104,8 +116,41 @@ func openaiTranscriptionCall(ctx context.Context, apiKey, baseURL, model string,
 	if out.Text == "" {
 		return nil, fmt.Errorf("empty transcription")
 	}
+	content := out.Text
+	if len(out.Segments) > 0 {
+		var b strings.Builder
+		for _, seg := range out.Segments {
+			text := strings.TrimSpace(seg.Text)
+			if text == "" {
+				continue
+			}
+			if b.Len() > 0 {
+				b.WriteByte('\n')
+			}
+			b.WriteString("[")
+			b.WriteString(formatSeconds(seg.Start))
+			b.WriteString(" - ")
+			b.WriteString(formatSeconds(seg.End))
+			b.WriteString("] ")
+			b.WriteString(text)
+		}
+		if b.Len() > 0 {
+			content = b.String()
+		}
+	}
 	return &providers.ChatResponse{
-		Content:      out.Text,
+		Content:      content,
 		FinishReason: "stop",
 	}, nil
+}
+
+func formatSeconds(seconds float64) string {
+	if seconds < 0 {
+		seconds = 0
+	}
+	totalMillis := int(seconds*1000 + 0.5)
+	minutes := totalMillis / 60000
+	secs := (totalMillis % 60000) / 1000
+	millis := totalMillis % 1000
+	return fmt.Sprintf("%02d:%02d.%03d", minutes, secs, millis)
 }

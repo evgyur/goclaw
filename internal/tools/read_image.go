@@ -32,11 +32,12 @@ func MediaImagesFromCtx(ctx context.Context) []providers.ImageContent {
 // visionProviderPriority is the order in which providers are tried for vision.
 // claude-cli follows anthropic so installations with a native Anthropic API key
 // keep using the faster direct API, while claude-cli-only setups still resolve.
-var visionProviderPriority = []string{"openrouter", "gemini", "anthropic", "claude-cli", "dashscope"}
+var visionProviderPriority = []string{"minimax", "openrouter", "gemini", "anthropic", "claude-cli", "dashscope"}
 
 // visionModelDefaults maps provider names to preferred vision models.
 // Empty string lets the provider pick its own default model.
 var visionModelDefaults = map[string]string{
+	"minimax":    "MiniMax-VL-01",
 	"openrouter": "google/gemini-2.5-flash-image",
 	"gemini":     "gemini-2.5-flash",
 	"anthropic":  "",

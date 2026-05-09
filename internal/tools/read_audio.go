@@ -31,10 +31,11 @@ func MediaAudioRefsFromCtx(ctx context.Context) []providers.MediaRef {
 const audioMaxBytes = 50 * 1024 * 1024
 
 // audioProviderPriority is the order in which providers are tried for audio analysis.
-var audioProviderPriority = []string{"gemini", "openai", "openrouter"}
+var audioProviderPriority = []string{"groq", "gemini", "openai", "openrouter"}
 
 // audioModelDefaults maps provider names to preferred audio-capable models.
 var audioModelDefaults = map[string]string{
+	"groq":       "whisper-large-v3-turbo",
 	"gemini":     "gemini-2.5-flash",
 	"openai":     "gpt-4o-audio-preview",
 	"openrouter": "google/gemini-2.5-flash",
