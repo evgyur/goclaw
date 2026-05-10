@@ -18,12 +18,12 @@ import (
 	"github.com/nextlevelbuilder/goclaw/internal/eventbus"
 	"github.com/nextlevelbuilder/goclaw/internal/hooks"
 	hookbuiltin "github.com/nextlevelbuilder/goclaw/internal/hooks/builtin"
-	"github.com/nextlevelbuilder/goclaw/internal/orchestration"
 	httpapi "github.com/nextlevelbuilder/goclaw/internal/http"
 	kg "github.com/nextlevelbuilder/goclaw/internal/knowledgegraph"
 	mcpbridge "github.com/nextlevelbuilder/goclaw/internal/mcp"
 	"github.com/nextlevelbuilder/goclaw/internal/media"
 	memorypkg "github.com/nextlevelbuilder/goclaw/internal/memory"
+	"github.com/nextlevelbuilder/goclaw/internal/orchestration"
 	"github.com/nextlevelbuilder/goclaw/internal/providers"
 	"github.com/nextlevelbuilder/goclaw/internal/sandbox"
 	"github.com/nextlevelbuilder/goclaw/internal/skills"
@@ -82,11 +82,12 @@ func wireExtras(
 			}
 		}
 		// Register media analysis tools (need mediaStore for file access).
+		toolsReg.Register(tools.NewReadImageTool(providerReg))
 		toolsReg.Register(tools.NewReadDocumentTool(providerReg, mediaStore))
 		toolsReg.Register(tools.NewReadAudioTool(providerReg, mediaStore))
 		toolsReg.Register(tools.NewReadVideoTool(providerReg, mediaStore))
 		toolsReg.Register(tools.NewCreateVideoTool(providerReg))
-		slog.Info("media tools registered", "tools", "read_document,read_audio,read_video,create_video")
+		slog.Info("media tools registered", "tools", "read_image,read_document,read_audio,read_video,create_video")
 	}
 
 	// 1e. Wire secure CLI store into exec tool for credentialed exec
