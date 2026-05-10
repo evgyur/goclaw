@@ -246,14 +246,9 @@ func callMiniMaxCodingPlanVLM(ctx context.Context, cp credentialProvider, prompt
 		imageData = fmt.Sprintf("data:%s;base64,%s", mime, image.Data)
 	}
 	payload := map[string]any{
-		"model": model,
-		"messages": []map[string]any{{
-			"role": "user",
-			"content": []map[string]any{
-				{"type": "text", "text": prompt},
-				{"type": "image_url", "image_url": map[string]string{"url": imageData}},
-			},
-		}},
+		"model":     model,
+		"prompt":    prompt,
+		"image_url": imageData,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {

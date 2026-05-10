@@ -59,4 +59,13 @@ func TestCallMiniMaxCodingPlanVLM(t *testing.T) {
 	if !strings.Contains(string(b), "data:image/png;base64,abc") {
 		t.Fatalf("image data URL missing from payload: %s", b)
 	}
+	if gotPayload["prompt"] != "describe" {
+		t.Fatalf("prompt missing from payload: %#v", gotPayload)
+	}
+	if gotPayload["image_url"] == "" {
+		t.Fatalf("image_url missing from payload: %#v", gotPayload)
+	}
+	if _, ok := gotPayload["messages"]; ok {
+		t.Fatalf("coding_plan/vlm does not accept chat messages payload: %#v", gotPayload)
+	}
 }
