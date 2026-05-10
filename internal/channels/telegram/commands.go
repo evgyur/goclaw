@@ -85,6 +85,7 @@ func (c *Channel) handleBotCommand(ctx context.Context, message *telego.Message,
 			"/stopall — Stop all running tasks\n" +
 			"/reset — Reset conversation history\n" +
 			"/status — Show bot status\n" +
+			"/scout <cmd> — Run Inbox Scout\n" +
 			"/reactions — Show reaction emoji legend\n" +
 			"/tasks — List team tasks\n" +
 			"/task_detail <id> — View task detail\n" +
@@ -198,6 +199,10 @@ func (c *Channel) handleBotCommand(ctx context.Context, message *telego.Message,
 		msg := tu.Message(chatIDObj, statusText)
 		setThread(msg)
 		c.bot.SendMessage(ctx, msg)
+		return true
+
+	case "/scout":
+		c.handleScoutCommand(ctx, chatID, text, setThread)
 		return true
 
 	case "/tasks":
