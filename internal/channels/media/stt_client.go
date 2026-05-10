@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -45,6 +46,8 @@ func getSTTClient() *http.Client {
 
 // STTConfig holds configuration for the Speech-to-Text proxy service.
 type STTConfig struct {
+	Provider       string // optional direct provider ("groq"); empty keeps proxy mode
+	Model          string // optional model for direct provider
 	ProxyURL       string // base URL of the STT proxy (e.g. "http://localhost:8080")
 	APIKey         string // optional Bearer token
 	TenantID       string // optional tenant identifier
@@ -63,7 +66,15 @@ type sttResponse struct {
 //
 // Any HTTP or parse error is returned so the caller can log and fall back gracefully.
 func TranscribeAudio(ctx context.Context, cfg STTConfig, filePath string) (string, error) {
-	if cfg.ProxyURL == "" || filePath == "" {
+	if filePath == "" {
+		return "", nil
+	}
+
+	provider := strings.ToLower(strings.TrimSpace(cfg.Provider))
+	if provider == "groq" {
+		return transcribeAudioGroq(ctx, cfg, filePath)
+	}
+	if cfg.ProxyURL == "" {
 		return "", nil
 	}
 
@@ -150,6 +161,107 @@ func TranscribeAudio(ctx context.Context, cfg STTConfig, filePath string) (strin
 	)
 
 	return result.Transcript, nil
+}
+
+func transcribeAudioGroq(ctx context.Context, cfg STTConfig, filePath string) (string, error) {
+	if cfg.APIKey == "" {
+		return "", fmt.Errorf("stt: groq provider requires API key")
+	}
+
+	timeoutSec := cfg.TimeoutSeconds
+	if timeoutSec <= 0 {
+		timeoutSec = DefaultSTTTimeout
+	}
+	model := strings.TrimSpace(cfg.Model)
+	if model == "" {
+		model = "whisper-large-v3-turbo"
+	}
+
+	f, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("stt: open audio file %q: %w", filePath, err)
+	}
+	defer f.Close()
+
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+	fw, err := w.CreateFormFile("file", groqAudioFilename(filePath))
+	if err != nil {
+		return "", fmt.Errorf("stt: create form file field: %w", err)
+	}
+	if _, err := io.Copy(fw, f); err != nil {
+		return "", fmt.Errorf("stt: write audio bytes to form: %w", err)
+	}
+	if err := w.WriteField("model", model); err != nil {
+		return "", fmt.Errorf("stt: write model field: %w", err)
+	}
+	if err := w.WriteField("response_format", "json"); err != nil {
+		return "", fmt.Errorf("stt: write response_format field: %w", err)
+	}
+	if err := w.Close(); err != nil {
+		return "", fmt.Errorf("stt: close multipart writer: %w", err)
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, time.Duration(timeoutSec)*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, "https://api.groq.com/openai/v1/audio/transcriptions", &body)
+	if err != nil {
+		return "", fmt.Errorf("stt: build groq request: %w", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
+
+	select {
+	case sttSem <- struct{}{}:
+		defer func() { <-sttSem }()
+	case <-reqCtx.Done():
+		return "", fmt.Errorf("stt: context cancelled waiting for concurrency slot: %w", reqCtx.Err())
+	}
+
+	resp, err := getSTTClient().Do(req)
+	if err != nil {
+		return "", fmt.Errorf("stt: groq request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return "", fmt.Errorf("stt: read groq response body: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("stt: groq returned %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result struct {
+		Text       string `json:"text"`
+		Transcript string `json:"transcript"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("stt: parse groq response JSON: %w", err)
+	}
+	if result.Text != "" {
+		return result.Text, nil
+	}
+	return result.Transcript, nil
+}
+
+func groqAudioFilename(filePath string) string {
+	base := filepath.Base(filePath)
+	if base == "." || base == string(filepath.Separator) || base == "" {
+		base = "audio"
+	}
+	ext := strings.ToLower(filepath.Ext(base))
+	switch ext {
+	case ".flac", ".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".ogg", ".opus", ".wav", ".webm":
+		return base
+	case ".oga":
+		return strings.TrimSuffix(base, filepath.Ext(base)) + ".ogg"
+	case "", ".bin", ".tmp":
+		return strings.TrimSuffix(base, filepath.Ext(base)) + ".ogg"
+	default:
+		return base + ".ogg"
+	}
 }
 
 // truncatePreview returns s truncated to maxLen with "..." suffix if needed.

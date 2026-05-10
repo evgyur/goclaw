@@ -26,20 +26,24 @@ var (
 // Channel override wins over tenant builtin_tools[stt] per Decision 2.
 func BridgeLegacySTT(mgr *Manager, cfg *config.Config) {
 	type chanEntry struct {
-		Name string
-		URL  string
-		Key  string
-		TID  string
-		TOut int
+		Name     string
+		URL      string
+		Provider string
+		Model    string
+		Key      string
+		TID      string
+		TOut     int
 	}
 
 	channels := []chanEntry{
 		{
-			Name: "telegram",
-			URL:  cfg.Channels.Telegram.STTProxyURL,
-			Key:  cfg.Channels.Telegram.STTAPIKey,
-			TID:  cfg.Channels.Telegram.STTTenantID,
-			TOut: cfg.Channels.Telegram.STTTimeoutSeconds,
+			Name:     "telegram",
+			URL:      cfg.Channels.Telegram.STTProxyURL,
+			Provider: cfg.Channels.Telegram.STTProvider,
+			Model:    cfg.Channels.Telegram.STTModel,
+			Key:      cfg.Channels.Telegram.STTAPIKey,
+			TID:      cfg.Channels.Telegram.STTTenantID,
+			TOut:     cfg.Channels.Telegram.STTTimeoutSeconds,
 		},
 		{
 			Name: "feishu",
@@ -66,7 +70,7 @@ func BridgeLegacySTT(mgr *Manager, cfg *config.Config) {
 	already := bridgedChannels[mgr]
 
 	for _, ch := range channels {
-		if ch.URL == "" {
+		if ch.URL == "" && strings.ToLower(strings.TrimSpace(ch.Provider)) != "groq" {
 			continue
 		}
 		if already[ch.Name] {
@@ -79,7 +83,7 @@ func BridgeLegacySTT(mgr *Manager, cfg *config.Config) {
 		)
 
 		p := &legacyBridgeSTTProvider{
-			cfg:     media.STTConfig{ProxyURL: ch.URL, APIKey: ch.Key, TenantID: ch.TID, TimeoutSeconds: ch.TOut},
+			cfg:     media.STTConfig{Provider: ch.Provider, Model: ch.Model, ProxyURL: ch.URL, APIKey: ch.Key, TenantID: ch.TID, TimeoutSeconds: ch.TOut},
 			channel: ch.Name,
 		}
 		mgr.RegisterChannelSTT(ch.Name, p)

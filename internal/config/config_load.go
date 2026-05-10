@@ -111,6 +111,11 @@ func (c *Config) applyEnvOverrides() {
 	envStr("GOCLAW_OLLAMA_CLOUD_API_BASE", &c.Providers.OllamaCloud.APIBase)
 	envStr("GOCLAW_GATEWAY_TOKEN", &c.Gateway.Token)
 	envStr("GOCLAW_TELEGRAM_TOKEN", &c.Channels.Telegram.Token)
+	envStr("GOCLAW_TELEGRAM_STT_PROVIDER", &c.Channels.Telegram.STTProvider)
+	envStr("GOCLAW_TELEGRAM_STT_MODEL", &c.Channels.Telegram.STTModel)
+	envStr("GOCLAW_TELEGRAM_STT_PROXY_URL", &c.Channels.Telegram.STTProxyURL)
+	envStr("GOCLAW_TELEGRAM_STT_API_KEY", &c.Channels.Telegram.STTAPIKey)
+	envStr("GOCLAW_TELEGRAM_STT_TENANT_ID", &c.Channels.Telegram.STTTenantID)
 	envStr("GOCLAW_DISCORD_TOKEN", &c.Channels.Discord.Token)
 	envStr("GOCLAW_ZALO_TOKEN", &c.Channels.Zalo.Token)
 	envStr("GOCLAW_LARK_APP_ID", &c.Channels.Feishu.AppID)
@@ -276,7 +281,6 @@ func (c *Config) applyEnvOverrides() {
 		c.Tools.Browser.Enabled = true
 	}
 }
-
 
 // Save writes the config to a JSON file.
 func Save(path string, cfg *Config) error {

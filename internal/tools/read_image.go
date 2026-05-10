@@ -1,10 +1,14 @@
 package tools
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,7 +41,7 @@ var visionProviderPriority = []string{"minimax", "openrouter", "gemini", "anthro
 // visionModelDefaults maps provider names to preferred vision models.
 // Empty string lets the provider pick its own default model.
 var visionModelDefaults = map[string]string{
-	"minimax":    "MiniMax-VL-01",
+	"minimax":    "MiniMax-M2.7-highspeed",
 	"openrouter": "google/gemini-2.5-flash-image",
 	"gemini":     "gemini-2.5-flash",
 	"anthropic":  "",
@@ -133,6 +137,10 @@ func (t *ReadImageTool) callProvider(ctx context.Context, cp credentialProvider,
 	prompt := GetParamString(params, "prompt", "Describe this image in detail.")
 	images, _ := params["images"].([]providers.ImageContent)
 
+	if providerName == "minimax" && cp != nil {
+		return callMiniMaxCodingPlanVLM(ctx, cp, prompt, images, model)
+	}
+
 	// Get the full provider for Chat() access
 	p, err := t.registry.Get(ctx, providerName)
 	if err != nil {
@@ -213,4 +221,78 @@ func (t *ReadImageTool) loadImageFromPath(ctx context.Context, path string) ([]p
 		MimeType: mime,
 		Data:     base64.StdEncoding.EncodeToString(data),
 	}}, nil
+}
+
+func callMiniMaxCodingPlanVLM(ctx context.Context, cp credentialProvider, prompt string, images []providers.ImageContent, model string) ([]byte, *providers.Usage, error) {
+	if len(images) == 0 {
+		return nil, nil, fmt.Errorf("minimax vision requires at least one image")
+	}
+	apiKey := cp.APIKey()
+	if apiKey == "" {
+		return nil, nil, fmt.Errorf("minimax vision requires API key")
+	}
+	base := strings.TrimRight(cp.APIBase(), "/")
+	base = strings.TrimSuffix(base, "/v1")
+	if base == "" {
+		base = "https://api.minimax.io"
+	}
+	image := images[0]
+	imageData := image.Data
+	if !strings.HasPrefix(imageData, "data:") {
+		mime := image.MimeType
+		if mime == "" {
+			mime = "image/jpeg"
+		}
+		imageData = fmt.Sprintf("data:%s;base64,%s", mime, image.Data)
+	}
+	payload := map[string]any{
+		"model": model,
+		"messages": []map[string]any{{
+			"role": "user",
+			"content": []map[string]any{
+				{"type": "text", "text": prompt},
+				{"type": "image_url", "image_url": map[string]string{"url": imageData}},
+			},
+		}},
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, nil, fmt.Errorf("minimax vlm marshal request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/v1/coding_plan/vlm", bytes.NewReader(body))
+	if err != nil {
+		return nil, nil, fmt.Errorf("minimax vlm request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("MM-API-Source", "GoClaw")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("minimax vlm request: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	if err != nil {
+		return nil, nil, fmt.Errorf("minimax vlm read response: %w", err)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, nil, fmt.Errorf("minimax vlm returned %d: %s", resp.StatusCode, string(respBody))
+	}
+	var result struct {
+		Content  string `json:"content"`
+		BaseResp struct {
+			StatusCode int    `json:"status_code"`
+			StatusMsg  string `json:"status_msg"`
+		} `json:"base_resp"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, nil, fmt.Errorf("minimax vlm parse response: %w", err)
+	}
+	if result.BaseResp.StatusCode != 0 {
+		return nil, nil, fmt.Errorf("minimax vlm api error %d: %s", result.BaseResp.StatusCode, result.BaseResp.StatusMsg)
+	}
+	if result.Content == "" {
+		return nil, nil, fmt.Errorf("minimax vlm returned empty content")
+	}
+	return []byte(result.Content), nil, nil
 }

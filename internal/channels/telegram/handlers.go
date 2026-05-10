@@ -421,6 +421,7 @@ func (c *Channel) handleMessage(ctx context.Context, update telego.Update) {
 				var sttErr error
 				if c.audioMgr != nil {
 					sttCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+					sttCtx = audio.WithChannel(sttCtx, c.Name())
 					res, err := c.audioMgr.Transcribe(sttCtx, audio.STTInput{FilePath: m.FilePath, MimeType: "audio/ogg"}, audio.STTOptions{})
 					cancel()
 					if err == nil && res != nil {
@@ -577,12 +578,12 @@ func (c *Channel) handleMessage(ctx context.Context, update telego.Update) {
 	// user sees typing indicator → first content appears directly.
 
 	metadata := map[string]string{
-		"message_id": fmt.Sprintf("%d", message.MessageID),
-		"user_id":    fmt.Sprintf("%d", user.ID),
+		"message_id":       fmt.Sprintf("%d", message.MessageID),
+		"user_id":          fmt.Sprintf("%d", user.ID),
 		tools.MetaUsername: user.Username,
-		"first_name": user.FirstName,
-		"is_group":   fmt.Sprintf("%t", isGroup),
-		"local_key":  localKey,
+		"first_name":       user.FirstName,
+		"is_group":         fmt.Sprintf("%t", isGroup),
+		"local_key":        localKey,
 	}
 	if message.Chat.Title != "" {
 		metadata[tools.MetaChatTitle] = message.Chat.Title

@@ -3,10 +3,13 @@ package telegram
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/nextlevelbuilder/goclaw/internal/audio"
+	"github.com/nextlevelbuilder/goclaw/internal/audio/proxy_stt"
 	"github.com/nextlevelbuilder/goclaw/internal/bus"
 	"github.com/nextlevelbuilder/goclaw/internal/channels"
+	"github.com/nextlevelbuilder/goclaw/internal/channels/media"
 	"github.com/nextlevelbuilder/goclaw/internal/config"
 	"github.com/nextlevelbuilder/goclaw/internal/store"
 )
@@ -29,7 +32,7 @@ type telegramInstanceConfig struct {
 	HistoryLimit    int      `json:"history_limit,omitempty"`
 	DMStream        *bool    `json:"dm_stream,omitempty"`
 	GroupStream     *bool    `json:"group_stream,omitempty"`
-	DraftTransport  *bool    `json:"draft_transport,omitempty"`   // sendMessageDraft for DM streaming (default true)
+	DraftTransport  *bool    `json:"draft_transport,omitempty"`  // sendMessageDraft for DM streaming (default true)
 	ReasoningStream *bool    `json:"reasoning_stream,omitempty"` // show reasoning as separate message (default true)
 	ReactionLevel   string   `json:"reaction_level,omitempty"`
 	MediaMaxMB      int64    `json:"media_max_mb,omitempty"`
@@ -38,6 +41,13 @@ type telegramInstanceConfig struct {
 	BlockReply      *bool    `json:"block_reply,omitempty"`
 	ForceIPv4       bool     `json:"force_ipv4,omitempty"`
 	AllowFrom       []string `json:"allow_from,omitempty"`
+
+	STTProxyURL       string `json:"stt_proxy_url,omitempty"`
+	STTProvider       string `json:"stt_provider,omitempty"`
+	STTModel          string `json:"stt_model,omitempty"`
+	STTAPIKey         string `json:"stt_api_key,omitempty"`
+	STTTenantID       string `json:"stt_tenant_id,omitempty"`
+	STTTimeoutSeconds int    `json:"stt_timeout_seconds,omitempty"`
 }
 
 // Factory creates a Telegram channel from DB instance data (no extra stores).
@@ -94,27 +104,48 @@ func buildChannel(name string, creds json.RawMessage, cfg json.RawMessage,
 	if apiServer == "" {
 		apiServer = c.APIServer
 	}
+	sttProvider := firstNonEmpty(ic.STTProvider, os.Getenv("GOCLAW_TELEGRAM_STT_PROVIDER"))
+	sttModel := firstNonEmpty(ic.STTModel, os.Getenv("GOCLAW_TELEGRAM_STT_MODEL"))
+	sttProxyURL := firstNonEmpty(ic.STTProxyURL, os.Getenv("GOCLAW_TELEGRAM_STT_PROXY_URL"))
+	sttAPIKey := firstNonEmpty(ic.STTAPIKey, os.Getenv("GOCLAW_TELEGRAM_STT_API_KEY"), os.Getenv("GOCLAW_GROQ_API_KEY"))
+	sttTenantID := firstNonEmpty(ic.STTTenantID, os.Getenv("GOCLAW_TELEGRAM_STT_TENANT_ID"))
+	sttTimeoutSeconds := ic.STTTimeoutSeconds
+	if sttTimeoutSeconds <= 0 {
+		if v := os.Getenv("GOCLAW_TELEGRAM_STT_TIMEOUT_SECONDS"); v != "" {
+			var parsed int
+			if _, err := fmt.Sscanf(v, "%d", &parsed); err == nil && parsed > 0 {
+				sttTimeoutSeconds = parsed
+			}
+		}
+	}
 
 	tgCfg := config.TelegramConfig{
-		Enabled:        true,
-		Token:          c.Token,
-		Proxy:          proxy,
-		APIServer:      apiServer,
-		AllowFrom:      ic.AllowFrom,
-		DMPolicy:       ic.DMPolicy,
-		GroupPolicy:    ic.GroupPolicy,
-		RequireMention: ic.RequireMention,
-		MentionMode:    ic.MentionMode,
-		HistoryLimit:   ic.HistoryLimit,
+		Enabled:         true,
+		Token:           c.Token,
+		Proxy:           proxy,
+		APIServer:       apiServer,
+		AllowFrom:       ic.AllowFrom,
+		DMPolicy:        ic.DMPolicy,
+		GroupPolicy:     ic.GroupPolicy,
+		RequireMention:  ic.RequireMention,
+		MentionMode:     ic.MentionMode,
+		HistoryLimit:    ic.HistoryLimit,
 		DMStream:        ic.DMStream,
 		GroupStream:     ic.GroupStream,
 		DraftTransport:  ic.DraftTransport,
 		ReasoningStream: ic.ReasoningStream,
 		ReactionLevel:   ic.ReactionLevel,
-		MediaMaxBytes:  resolveMediaMaxBytes(ic),
-		LinkPreview:    ic.LinkPreview,
-		BlockReply:     ic.BlockReply,
-		ForceIPv4:      ic.ForceIPv4,
+		MediaMaxBytes:   resolveMediaMaxBytes(ic),
+		LinkPreview:     ic.LinkPreview,
+		BlockReply:      ic.BlockReply,
+		ForceIPv4:       ic.ForceIPv4,
+
+		STTProxyURL:       sttProxyURL,
+		STTProvider:       sttProvider,
+		STTModel:          sttModel,
+		STTAPIKey:         sttAPIKey,
+		STTTenantID:       sttTenantID,
+		STTTimeoutSeconds: sttTimeoutSeconds,
 	}
 
 	// DB instances default to "pairing" for groups (secure by default).
@@ -130,6 +161,7 @@ func buildChannel(name string, creds json.RawMessage, cfg json.RawMessage,
 
 	// Override the channel name from DB instance.
 	ch.SetName(name)
+	registerInstanceSTT(audioMgr, name, sttProvider, sttModel, sttProxyURL, sttAPIKey, sttTenantID, sttTimeoutSeconds)
 	return ch, nil
 }
 
@@ -140,4 +172,30 @@ func resolveMediaMaxBytes(ic telegramInstanceConfig) int64 {
 		return ic.MediaMaxMB * 1024 * 1024
 	}
 	return ic.MediaMaxBytes
+}
+
+func registerInstanceSTT(audioMgr *audio.Manager, channelName, provider, model, proxyURL, apiKey, tenantID string, timeoutSeconds int) {
+	if audioMgr == nil {
+		return
+	}
+	if proxyURL == "" && provider != "groq" {
+		return
+	}
+	audioMgr.RegisterChannelSTT(channelName, proxy_stt.NewProvider(media.STTConfig{
+		Provider:       provider,
+		Model:          model,
+		ProxyURL:       proxyURL,
+		APIKey:         apiKey,
+		TenantID:       tenantID,
+		TimeoutSeconds: timeoutSeconds,
+	}))
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
