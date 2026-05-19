@@ -21,8 +21,6 @@ import (
 	"github.com/nextlevelbuilder/goclaw/pkg/protocol"
 )
 
-const maxSkillUploadSize = 20 << 20 // 20 MB
-
 var (
 	aggregateInstallDeps = skills.AggregateMissingDeps
 	installManagedDeps   = skills.InstallDeps
@@ -37,13 +35,29 @@ type SkillsHandler struct {
 	msgBus         *bus.MessageBus
 	tenantCfgStore store.SkillTenantConfigStore
 	tenantStore    store.TenantStore
-	db             *sql.DB // for export/import direct queries
+	db             *sql.DB  // for export/import direct queries
 	uploadLocks    sync.Map // per-slug mutex; bounded by validated slug set, entries are tiny (*sync.Mutex)
+	maxUploadSize  int64    // per-file upload cap in bytes
 }
 
 // NewSkillsHandler creates a handler for skill management endpoints.
 func NewSkillsHandler(skills store.SkillManageStore, baseDir, dataDir, bundledDir string, msgBus *bus.MessageBus, tenantCfgStore store.SkillTenantConfigStore, tenantStore store.TenantStore) *SkillsHandler {
-	return &SkillsHandler{skills: skills, baseDir: baseDir, dataDir: dataDir, bundledDir: bundledDir, msgBus: msgBus, tenantCfgStore: tenantCfgStore, tenantStore: tenantStore}
+	return &SkillsHandler{skills: skills, baseDir: baseDir, dataDir: dataDir, bundledDir: bundledDir, msgBus: msgBus, tenantCfgStore: tenantCfgStore, tenantStore: tenantStore, maxUploadSize: config.SkillsConfig{}.MaxUploadSizeBytes()}
+}
+
+// SetMaxUploadSizeBytes configures the per-file upload cap for skill ZIP uploads.
+func (h *SkillsHandler) SetMaxUploadSizeBytes(size int64) {
+	if size <= 0 {
+		size = config.SkillsConfig{}.MaxUploadSizeBytes()
+	}
+	h.maxUploadSize = size
+}
+
+func (h *SkillsHandler) maxSkillUploadSize() int64 {
+	if h.maxUploadSize <= 0 {
+		return config.SkillsConfig{}.MaxUploadSizeBytes()
+	}
+	return h.maxUploadSize
 }
 
 // tenantSkillsDir returns the skills-store directory scoped to the requesting tenant.

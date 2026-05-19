@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -305,6 +306,22 @@ func TestHandleInstallDeps_ExistingEndpointStillReturnsInstallResult(t *testing.
 	}
 	if !reflect.DeepEqual(resp.Pip, []string{"requests"}) {
 		t.Fatalf("pip installs = %v, want [requests]", resp.Pip)
+	}
+}
+
+func TestHandleUpload_UsesConfiguredMaxUploadSize(t *testing.T) {
+	handler, _, ctx, _ := newTestUploadHandler(t)
+	handler.SetMaxUploadSizeBytes(64)
+
+	req := newZipUploadRequest(t, ctx, map[string]string{
+		"SKILL.md":  skillMarkdown("Too Large Skill", "too-large-skill"),
+		"asset.txt": strings.Repeat("x", 2048),
+	})
+	w := httptest.NewRecorder()
+	handler.handleUpload(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d; body = %s", w.Code, http.StatusBadRequest, w.Body.String())
 	}
 }
 

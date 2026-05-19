@@ -334,6 +334,9 @@ func runGateway() {
 	exportTokenStore := httpapi.InitExportTokenStore()
 	defer exportTokenStore.Stop()
 	agentsH, skillsH, tracesH, mcpH, channelInstancesH, providersH, builtinToolsH, pendingMessagesH, teamEventsH, secureCLIH, secureCLIGrantH, mcpUserCredsH := wireHTTP(pgStores, cfg.Agents.Defaults.Workspace, dataDir, bundledSkillsDir, msgBus, toolsReg, providerRegistry, modelReg, permPE.IsOwner, gatewayAddr, mcpToolLister)
+	if skillsH != nil {
+		skillsH.SetMaxUploadSizeBytes(cfg.Skills.MaxUploadSizeBytes())
+	}
 
 	// Wire dependencies for system prompt preview parity.
 	if agentsH != nil {

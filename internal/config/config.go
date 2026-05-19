@@ -47,6 +47,7 @@ type Config struct {
 	Providers ProvidersConfig `json:"providers"`
 	Gateway   GatewayConfig   `json:"gateway"`
 	Tools     ToolsConfig     `json:"tools"`
+	Skills    SkillsConfig    `json:"skills"`
 	Sessions  SessionsConfig  `json:"sessions"`
 	Database  DatabaseConfig  `json:"database"`
 	Tts       TtsConfig       `json:"tts"`
@@ -97,7 +98,23 @@ type DatabaseConfig struct {
 
 // SkillsConfig configures the skills storage system.
 type SkillsConfig struct {
-	StorageDir string `json:"storage_dir,omitempty"` // directory for skill content (default: dataDir/skills-store/)
+	StorageDir      string `json:"storage_dir,omitempty"`        // directory for skill content (default: dataDir/skills-store/)
+	MaxUploadSizeMB int    `json:"max_upload_size_mb,omitempty"` // per-file upload limit in MiB (default 20, clamped 1..500)
+}
+
+// MaxUploadSizeBytes returns the effective per-file skill upload cap in bytes.
+func (sc SkillsConfig) MaxUploadSizeBytes() int64 {
+	mb := sc.MaxUploadSizeMB
+	if mb <= 0 {
+		mb = DefaultSkillMaxUploadSizeMB
+	}
+	if mb < MinSkillMaxUploadSizeMB {
+		mb = MinSkillMaxUploadSizeMB
+	}
+	if mb > MaxSkillMaxUploadSizeMB {
+		mb = MaxSkillMaxUploadSizeMB
+	}
+	return int64(mb) << 20
 }
 
 // AgentBinding maps a channel/peer pattern to a specific agent.
@@ -447,6 +464,7 @@ func (c *Config) ReplaceFrom(src *Config) {
 	c.Providers = src.Providers
 	c.Gateway = src.Gateway
 	c.Tools = src.Tools
+	c.Skills = src.Skills
 	c.Sessions = src.Sessions
 	c.Database = src.Database
 	c.Tts = src.Tts

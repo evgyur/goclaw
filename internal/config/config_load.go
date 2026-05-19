@@ -56,6 +56,9 @@ func Default() *Config {
 			},
 			RateLimitPerHour: 150,
 		},
+		Skills: SkillsConfig{
+			MaxUploadSizeMB: DefaultSkillMaxUploadSizeMB,
+		},
 		Sessions: SessionsConfig{},
 	}
 }
@@ -167,6 +170,11 @@ func (c *Config) applyEnvOverrides() {
 	// Data directory, workspace & sessions
 	envStr("GOCLAW_DATA_DIR", &c.DataDir)
 	envStr("GOCLAW_WORKSPACE", &c.Agents.Defaults.Workspace)
+	if v := os.Getenv("GOCLAW_SKILLS_MAX_UPLOAD_SIZE_MB"); v != "" {
+		if mb, err := strconv.Atoi(v); err == nil {
+			c.Skills.MaxUploadSizeMB = mb
+		}
+	}
 
 	// Gateway host/port
 	envStr("GOCLAW_HOST", &c.Gateway.Host)
@@ -276,7 +284,6 @@ func (c *Config) applyEnvOverrides() {
 		c.Tools.Browser.Enabled = true
 	}
 }
-
 
 // Save writes the config to a JSON file.
 func Save(path string, cfg *Config) error {

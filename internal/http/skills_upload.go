@@ -39,7 +39,7 @@ func (h *SkillsHandler) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxSkillUploadSize)
+	r.Body = http.MaxBytesReader(w, r.Body, h.maxSkillUploadSize())
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
