@@ -19,6 +19,7 @@ import {
   getChannelRemediationMeta,
   getRenderableChannelStatus,
   getChannelStatusMeta,
+  shouldShowChannelDiagnosticsCard,
 } from "../channels-status-view";
 import { useChannelTimeline } from "./channel-detail-timeline-hook";
 import { ChannelDetailDialogs } from "./channel-detail-dialogs";
@@ -130,12 +131,7 @@ export function ChannelDetailPage({
 
   const timelineItems = useChannelTimeline(status, t);
 
-  const showDiagnosticsCard =
-    status?.state === "failed" ||
-    status?.state === "degraded" ||
-    !!status?.remediation ||
-    !!status?.consecutive_failures ||
-    !!status?.first_failed_at;
+  const showDiagnosticsCard = shouldShowChannelDiagnosticsCard(status);
 
   const neutralHealthNote =
     !showDiagnosticsCard &&
