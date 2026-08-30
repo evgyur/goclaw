@@ -16,11 +16,13 @@ services:
       retries: 30
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
+    # The official entrypoint initializes the volume as root, then drops to postgres.
+    cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETGID", "SETUID"]
     networks: [haraldr-internal]
     restart: unless-stopped
 
   goclaw:
-    image: haraldr-goclaw-runtime:b3e54d64500ebdbac55ea935b1d91c470dd95695
+    image: haraldr-goclaw-runtime:488dfb79ba150a6b0c456627c4633710a785b307
     build:
       context: ../..
       dockerfile: Dockerfile
@@ -28,7 +30,7 @@ services:
         ENABLE_EMBEDUI: "true"
         ENABLE_PYTHON: "false"
         ENABLE_FULL_SKILLS: "false"
-        VERSION: b3e54d64500ebdbac55ea935b1d91c470dd95695
+        VERSION: 488dfb79ba150a6b0c456627c4633710a785b307
     depends_on:
       postgres: {condition: service_healthy}
     ports:
@@ -47,6 +49,11 @@ services:
       GOCLAW_OPENAI_BASE_URL: https://keys.human20.app/v1
       GOCLAW_OPENAI_API_KEY: ${H20_KEYS_API_KEY:?required}
       GOCLAW_TRACE_VERBOSE: "0"
+      TRADER20_HYPERLIQUID_INFO_URL: https://api.hyperliquid.xyz/info
+      TRADER20_HYPERLIQUID_ACCOUNT: "0xce9A8BFe7f5A5A6DeAc8bcE0033d5335F3a2986d"
+      TRADER20_CANDIDATE_SHA: ${TRADER20_CANDIDATE_SHA:?required}
+      TRADER20_POLICY_HASH: ${TRADER20_POLICY_HASH:?required}
+      TRADER20_MAX_STALENESS_SECONDS: "30"
     configs:
       - source: haraldr-goclaw-config
         target: /app/config/config.json5

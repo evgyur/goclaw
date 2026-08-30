@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline verifier for the A03 Haraldr GoClaw scaffold."""
+"""Offline verifier for the exact A06 Haraldr GoClaw release package."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-EXPECTED_COMMIT = "b3e54d64500ebdbac55ea935b1d91c470dd95695"
-EXPECTED_TREE = "9f719ae2cd85a64e7fb6702cd9e891ef3ed61e46"
+EXPECTED_COMMIT = "488dfb79ba150a6b0c456627c4633710a785b307"
+EXPECTED_TREE = "82253ac93ef5ebd7fd2b487584ef77ae6c986b6f"
 READ_ONLY_TOOLS = {
     "trader20_capabilities", "trader20_status", "trader20_positions",
     "trader20_orders", "trader20_history", "trader20_explain_blocker",
@@ -26,7 +26,7 @@ DENIED = {
 }
 FORBIDDEN_COMPOSE = {
     "/var/run/docker.sock", "/etc:", "/opt/trader20-v3", "/var/lib/trader20-v3",
-    "/home/hermes", "pear-goclaw", "TELEGRAM_BOT_TOKEN", "GOCLAW_TELEGRAM_TOKEN",
+    "/home/hermes", "pear-goclaw", "TELEGRAM_BOT_TOKEN",
     "PRIVATE_KEY", "PRIVY", "SIGNER", "WALLET", "TRADING_SECRET",
 }
 
@@ -100,6 +100,8 @@ def verify() -> dict:
     agent_tools = provisioned["agent"]["tools_config"]
     if set(tools["allow"]) != READ_ONLY_TOOLS or set(agent_tools["allow"]) != READ_ONLY_TOOLS:
         errors.append("effective allowlist is not the exact Trader20 read-only set")
+    if tools.get("profile") != "full":
+        errors.append("tool profile must begin with the full registry before the explicit allowlist intersection")
     if not DENIED.issubset(set(tools["deny"])) or not DENIED.issubset(set(agent_tools["deny"])):
         errors.append("required tool denylist is incomplete")
     if set(policy["allow_tools"]) != READ_ONLY_TOOLS or policy["effect_scope"] != "repo_mutation":
@@ -140,14 +142,26 @@ def verify() -> dict:
             errors.append(f"missing dedicated/pinned compose value: {required}")
     if re.search(r"image:\s+[^\n]+:latest(?:\s|$)", compose):
         errors.append("mutable latest image tag present")
-    if provenance["runtime_image_digest"] is not None or provenance["activation_authorized"] is not False:
-        errors.append("offline scaffold must remain unactivated with image digest gate open")
+    if provenance["runtime_image_digest"] is not None:
+        errors.append("repository release manifest must leave the runtime digest for the external build receipt")
+    if provenance["activation_authorized"] is not True or provenance["telegram_enabled"] is not True:
+        errors.append("A06 release package is not authorized for the Telegram cutover")
+    if provenance["money_effects_authorized"] is not False:
+        errors.append("A06 release package authorizes money effects")
+    if "GOCLAW_TELEGRAM_TOKEN" in compose:
+        errors.append("Telegram token must be installed through encrypted channel credentials, not container environment")
+    if "--enable-telegram" not in (HERE / "provision.py").read_text():
+        errors.append("A06 package has no explicit Telegram cutover command")
+    if "enable_trader20_tools" not in (HERE / "provision.py").read_text():
+        errors.append("A06 package does not enable the disabled-by-default Trader20 builtin tools")
+    if 'cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETGID", "SETUID"]' not in compose:
+        errors.append("PostgreSQL entrypoint cannot initialize its volume and drop privileges")
 
     if errors:
         raise AssertionError("; ".join(errors))
     return {
         "ok": True,
-        "phase": "A04-offline-bounded-coding",
+        "phase": "A06-deploy-cutover",
         "candidate_commit": EXPECTED_COMMIT,
         "candidate_tree": source_tree,
         "scaffold_commit": head,
@@ -158,8 +172,8 @@ def verify() -> dict:
         "provider": "h20-keys",
         "model": "h20-gpt",
         "tool_allow_count": len(READ_ONLY_TOOLS),
-        "telegram_enabled": False,
-        "activation_authorized": False,
+        "telegram_enabled": True,
+        "activation_authorized": True,
     }
 
 

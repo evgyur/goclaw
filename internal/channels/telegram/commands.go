@@ -62,6 +62,9 @@ func (c *Channel) handleBotCommand(ctx context.Context, message *telego.Message,
 	ctx = store.WithTenantID(ctx, c.TenantID())
 
 	chatIDObj := tu.ID(chatID)
+	if c.handleTrader20Command(ctx, cmd, chatID, senderID, isGroup) {
+		return true
+	}
 
 	// Helper: set MessageThreadID on outgoing messages for forum topics.
 	// TS ref: buildTelegramThreadParams() — General topic (1) must be omitted.

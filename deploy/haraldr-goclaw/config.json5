@@ -40,7 +40,7 @@
   },
   "bindings": [],
   "tools": {
-    "profile": "minimal",
+    "profile": "full",
     "allow": [
       "trader20_capabilities",
       "trader20_status",
@@ -62,12 +62,6 @@
     "browser": {"enabled": false},
     "web_fetch": {"policy": "allowlist", "allowed_domains": [], "blocked_domains": ["*"]},
     "mcp_servers": {
-      "trader20_readonly": {
-        "transport": "streamable-http",
-        "url": "http://trader20-readonly:8000/mcp",
-        "tool_prefix": "",
-        "timeout_sec": 30
-      },
       "haraldr_code_runner": {
         "transport": "streamable-http",
         "url": "http://code-runner:8090/mcp",
