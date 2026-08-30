@@ -16,6 +16,8 @@ services:
       retries: 30
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
+    # The official entrypoint initializes the volume as root, then drops to postgres.
+    cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETGID", "SETUID"]
     networks: [haraldr-internal]
     restart: unless-stopped
 

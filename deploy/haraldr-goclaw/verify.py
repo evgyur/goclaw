@@ -148,6 +148,8 @@ def verify() -> dict:
         errors.append("A06 release package authorizes money effects")
     if "GOCLAW_TELEGRAM_TOKEN: ${GOCLAW_TELEGRAM_TOKEN:-}" not in compose:
         errors.append("A06 compose package has no explicit Telegram cutover switch")
+    if 'cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETGID", "SETUID"]' not in compose:
+        errors.append("PostgreSQL entrypoint cannot initialize its volume and drop privileges")
 
     if errors:
         raise AssertionError("; ".join(errors))
