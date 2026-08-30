@@ -40,6 +40,7 @@ class HaraldrGoClawReleaseTest(unittest.TestCase):
         self.assertEqual("h20-keys", agent["provider"])
         self.assertEqual("h20-gpt", agent["model"])
         self.assertEqual(set(verifier.READ_ONLY_TOOLS), set(agent["tools_config"]["allow"]))
+        self.assertEqual(set(verifier.READ_ONLY_TOOLS), set(agent["tools_config"]["alsoAllow"]))
         self.assertTrue(verifier.DENIED.issubset(set(agent["tools_config"]["deny"])))
         self.assertFalse(agent["subagents_config"]["enabled"])
         self.assertFalse(agent["self_evolve"])

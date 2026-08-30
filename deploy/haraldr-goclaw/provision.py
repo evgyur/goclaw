@@ -46,7 +46,15 @@ def payloads() -> dict[str, dict]:
             "max_tool_iterations": 8,
             "context_window": 131072,
             "max_tokens": 4096,
-            "tools_config": {"allow": READ_ONLY_TOOLS, "deny": DENIED_TOOLS},
+            # system_configs may retain a restrictive global profile from an
+            # earlier install. Keep the exact per-agent allow list and add the
+            # same bounded set after global-profile filtering so this agent
+            # cannot silently lose all of its explicitly granted tools.
+            "tools_config": {
+                "allow": READ_ONLY_TOOLS,
+                "alsoAllow": READ_ONLY_TOOLS,
+                "deny": DENIED_TOOLS,
+            },
             "memory_config": {"enabled": True},
             "subagents_config": {"enabled": False},
             "self_evolve": False,
