@@ -1,8 +1,8 @@
 {
   "schema": "trader20.haraldr-goclaw-policy.v1",
-  "phase": "A03-offline-read-only",
+  "phase": "A04-offline-bounded-coding",
   "agent": "haraldr-trader20",
-  "effect_scope": "read_only",
+  "effect_scope": "repo_mutation",
   "allow_tools": [
     "trader20_capabilities",
     "trader20_status",
@@ -10,7 +10,8 @@
     "trader20_orders",
     "trader20_history",
     "trader20_explain_blocker",
-    "trader20_runtime_health"
+    "trader20_runtime_health",
+    "coding_exec"
   ],
   "deny_tools": [
     "exec", "shell", "publish_skill", "skill_manage", "write_file", "edit",

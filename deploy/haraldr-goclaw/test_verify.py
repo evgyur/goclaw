@@ -26,7 +26,7 @@ class HaraldrGoClawScaffoldTest(unittest.TestCase):
         self.assertTrue(receipt["ok"])
         self.assertFalse(receipt["telegram_enabled"])
         self.assertFalse(receipt["activation_authorized"])
-        self.assertEqual(7, receipt["tool_allow_count"])
+        self.assertEqual(8, receipt["tool_allow_count"])
 
     def test_provisioning_payload_is_predefined_disabled_and_read_only(self) -> None:
         plans = provision.payloads()

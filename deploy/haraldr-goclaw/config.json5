@@ -48,7 +48,8 @@
       "trader20_orders",
       "trader20_history",
       "trader20_explain_blocker",
-      "trader20_runtime_health"
+      "trader20_runtime_health",
+      "coding_exec"
     ],
     "deny": [
       "exec", "shell", "publish_skill", "skill_manage", "write_file", "edit",
@@ -66,6 +67,12 @@
         "url": "http://trader20-readonly:8000/mcp",
         "tool_prefix": "",
         "timeout_sec": 30
+      },
+      "haraldr_code_runner": {
+        "transport": "streamable-http",
+        "url": "http://code-runner:8090/mcp",
+        "tool_prefix": "",
+        "timeout_sec": 125
       }
     }
   }

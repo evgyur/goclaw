@@ -1,0 +1,19 @@
+{
+  "schema": "trader20.release-broker-policy.v1",
+  "phase": "A04-offline",
+  "approved_repositories": ["evgyur/goclaw"],
+  "approved_base_branches": ["feat/hyperliquid-readonly-tools-20260830"],
+  "approved_base_commits": ["9cba0fbb915d9c16a7f2f73e05681fc3c33d27e7"],
+  "candidate_branch_prefixes": ["feat/", "fix/", "chore/"],
+  "forbidden_push_branches": ["main", "master"],
+  "force_push": false,
+  "allowed_write_set": ["deploy/haraldr-goclaw/**"],
+  "required_identity": [
+    "task_id", "repository", "base_branch", "base_sha", "candidate_branch",
+    "candidate_sha", "candidate_tree", "idempotency_key", "diff_sha256"
+  ],
+  "max_diff_bytes": 1048576,
+  "reject_secret_bearing_diffs": true,
+  "allowed_operation": "publish_candidate_branch",
+  "remote_effect_authorized": false
+}

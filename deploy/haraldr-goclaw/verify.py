@@ -17,7 +17,7 @@ EXPECTED_TREE = "9f719ae2cd85a64e7fb6702cd9e891ef3ed61e46"
 READ_ONLY_TOOLS = {
     "trader20_capabilities", "trader20_status", "trader20_positions",
     "trader20_orders", "trader20_history", "trader20_explain_blocker",
-    "trader20_runtime_health",
+    "trader20_runtime_health", "coding_exec",
 }
 DENIED = {
     "exec", "shell", "publish_skill", "skill_manage", "write_file", "edit",
@@ -102,8 +102,8 @@ def verify() -> dict:
         errors.append("effective allowlist is not the exact Trader20 read-only set")
     if not DENIED.issubset(set(tools["deny"])) or not DENIED.issubset(set(agent_tools["deny"])):
         errors.append("required tool denylist is incomplete")
-    if set(policy["allow_tools"]) != READ_ONLY_TOOLS or policy["effect_scope"] != "read_only":
-        errors.append("broker policy is not exact read-only")
+    if set(policy["allow_tools"]) != READ_ONLY_TOOLS or policy["effect_scope"] != "repo_mutation":
+        errors.append("effective policy is not exact read-only plus bounded coding_exec")
     if config["tools"]["execApproval"] != {"security": "deny", "ask": "off", "allowlist": []}:
         errors.append("native exec approval is not deny/off")
     if config["tools"]["browser"].get("enabled") is not False:
@@ -133,7 +133,8 @@ def verify() -> dict:
         errors.append("gateway is not bound to dedicated loopback port")
     for required in (
         "haraldr_goclaw", "haraldr-goclaw-postgres-data", "haraldr-goclaw-data",
-        "haraldr-goclaw-workspace", "haraldr-goclaw-internal", EXPECTED_COMMIT,
+        "haraldr-goclaw-workspace", "haraldr-goclaw-internal", "haraldr-code-runner-internal",
+        EXPECTED_COMMIT,
     ):
         if required not in compose:
             errors.append(f"missing dedicated/pinned compose value: {required}")
@@ -146,7 +147,7 @@ def verify() -> dict:
         raise AssertionError("; ".join(errors))
     return {
         "ok": True,
-        "phase": "A03-offline-scaffold",
+        "phase": "A04-offline-bounded-coding",
         "candidate_commit": EXPECTED_COMMIT,
         "candidate_tree": source_tree,
         "scaffold_commit": head,

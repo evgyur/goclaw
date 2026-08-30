@@ -17,6 +17,7 @@ READ_ONLY_TOOLS = [
     "trader20_history",
     "trader20_explain_blocker",
     "trader20_runtime_health",
+    "coding_exec",
 ]
 DENIED_TOOLS = [
     "exec", "shell", "publish_skill", "skill_manage", "write_file", "edit",

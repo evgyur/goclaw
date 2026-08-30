@@ -59,8 +59,31 @@ services:
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
     cap_add: ["SETUID", "SETGID", "CHOWN"]
-    networks: [haraldr-internal]
+    networks: [haraldr-internal, haraldr-code-runner-internal]
     restart: unless-stopped
+
+  code-runner:
+    image: haraldr-code-runner:a04-v1
+    build:
+      context: ../..
+      dockerfile: deploy/haraldr-goclaw/code-runner/Dockerfile
+    user: "65532:65532"
+    environment:
+      CODING_EXEC_ROOT: /workspace
+      CODING_EXEC_LISTEN: 0.0.0.0:8090
+      CODING_EXEC_MAX_OUTPUT_BYTES: "65536"
+    volumes:
+      - haraldr-goclaw-workspace:/workspace:rw
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,size=256m,uid=65532,gid=65532,mode=0700
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 0.50
+    networks: [haraldr-code-runner-internal]
+    restart: "no"
 
 configs:
   haraldr-goclaw-config:
@@ -81,3 +104,10 @@ networks:
     ipam:
       config:
         - subnet: 10.253.83.0/28
+  haraldr-code-runner-internal:
+    name: haraldr-code-runner-internal
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.253.84.0/29
