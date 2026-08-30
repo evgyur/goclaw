@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import unittest
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 
@@ -42,6 +44,36 @@ class HaraldrGoClawReleaseTest(unittest.TestCase):
         self.assertFalse(agent["skill_evolve"])
         self.assertFalse(plans["channel"]["enabled"])
         self.assertEqual({}, plans["channel"]["credentials"])
+
+    def test_telegram_cutover_is_owner_only_and_requires_explicit_authority(self) -> None:
+        with self.assertRaises(RuntimeError):
+            provision.set_telegram_enabled(True)
+        calls = []
+
+        def fake_request(_token, method, path, body=None):
+            calls.append((method, path, body))
+            if method == "GET" and path == "/v1/channels/instances":
+                return {"instances": [{"id": "channel-1", "name": "haraldr-trader20-telegram"}]}
+            if method == "GET":
+                return {
+                    "enabled": True,
+                    "config": {"dm_policy": "allowlist", "allow_from": ["617744661"]},
+                    "has_credentials": True,
+                }
+            return {"status": "updated"}
+
+        env = {
+            "HARALDR_GOCLAW_ALLOW_TELEGRAM_CUTOVER": "YES",
+            "HARALDR_GOCLAW_GATEWAY_TOKEN": "gateway-test-token",
+            "GOCLAW_TELEGRAM_TOKEN": "telegram-test-token",
+        }
+        with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(provision, "request", side_effect=fake_request):
+            provision.set_telegram_enabled(True)
+        update = next(body for method, _path, body in calls if method == "PUT")
+        self.assertEqual(["617744661"], update["config"]["allow_from"])
+        self.assertEqual("allowlist", update["config"]["dm_policy"])
+        self.assertEqual("disabled", update["config"]["group_policy"])
+        self.assertEqual({"token": "telegram-test-token"}, update["credentials"])
 
 
 if __name__ == "__main__":

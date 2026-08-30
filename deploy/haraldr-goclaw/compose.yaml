@@ -54,7 +54,6 @@ services:
       TRADER20_CANDIDATE_SHA: ${TRADER20_CANDIDATE_SHA:?required}
       TRADER20_POLICY_HASH: ${TRADER20_POLICY_HASH:?required}
       TRADER20_MAX_STALENESS_SECONDS: "30"
-      GOCLAW_TELEGRAM_TOKEN: ${GOCLAW_TELEGRAM_TOKEN:-}
     configs:
       - source: haraldr-goclaw-config
         target: /app/config/config.json5
