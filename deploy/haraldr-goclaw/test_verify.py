@@ -20,12 +20,13 @@ provision = load("provision")
 verifier = load("verify")
 
 
-class HaraldrGoClawScaffoldTest(unittest.TestCase):
-    def test_offline_scaffold_policy_and_hashes(self) -> None:
+class HaraldrGoClawReleaseTest(unittest.TestCase):
+    def test_a06_release_policy_and_hashes(self) -> None:
         receipt = verifier.verify()
         self.assertTrue(receipt["ok"])
-        self.assertFalse(receipt["telegram_enabled"])
-        self.assertFalse(receipt["activation_authorized"])
+        self.assertTrue(receipt["telegram_enabled"])
+        self.assertTrue(receipt["activation_authorized"])
+        self.assertEqual("A06-deploy-cutover", receipt["phase"])
         self.assertEqual(8, receipt["tool_allow_count"])
 
     def test_provisioning_payload_is_predefined_disabled_and_read_only(self) -> None:
