@@ -27,6 +27,15 @@ func builtinToolSeedData() []store.BuiltinToolDef {
 		},
 		{Name: "wait", DisplayName: "Wait", Description: "Pause the current agent tool sequence for a bounded number of milliseconds", Category: "runtime", Enabled: true},
 
+		// trader20.control.v1 — provider-read-only; explicitly granted per agent.
+		{Name: "trader20_capabilities", DisplayName: "Trader20 Capabilities", Description: "Read the fail-closed Trader20 capability contract", Category: "trader20", Enabled: false},
+		{Name: "trader20_status", DisplayName: "Trader20 Status", Description: "Read normalized Hyperliquid account status", Category: "trader20", Enabled: false},
+		{Name: "trader20_positions", DisplayName: "Trader20 Positions", Description: "Read current Hyperliquid positions", Category: "trader20", Enabled: false},
+		{Name: "trader20_orders", DisplayName: "Trader20 Orders", Description: "Read current Hyperliquid open orders", Category: "trader20", Enabled: false},
+		{Name: "trader20_history", DisplayName: "Trader20 History", Description: "Read bounded Hyperliquid fill history", Category: "trader20", Enabled: false},
+		{Name: "trader20_explain_blocker", DisplayName: "Trader20 Explain Blocker", Description: "Explain fail-closed Trader20 availability", Category: "trader20", Enabled: false},
+		{Name: "trader20_runtime_health", DisplayName: "Trader20 Runtime Health", Description: "Read Hyperliquid provider and binding health", Category: "trader20", Enabled: false},
+
 		// web
 		{Name: "web_search", DisplayName: "Web Search", Description: "Search the web for information using a search engine (Brave or DuckDuckGo)", Category: "web", Enabled: true,
 			Metadata: json.RawMessage(`{"config_hint":"Config → Tools → Web Search"}`),
