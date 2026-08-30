@@ -1,0 +1,16 @@
+{
+  "schema": "trader20.skill-adapter.v1",
+  "platform": "goclaw",
+  "protocol": "trader20.control.v1",
+  "transport": "builtin_tool",
+  "operations": {
+    "capabilities": "trader20_capabilities",
+    "status": "trader20_status",
+    "positions": "trader20_positions",
+    "orders": "trader20_orders",
+    "history": "trader20_history",
+    "explain_blocker": "trader20_explain_blocker",
+    "runtime_health": "trader20_runtime_health"
+  },
+  "normalized_output": "contracts/trader20-control-v1/read-envelope.schema.json"
+}

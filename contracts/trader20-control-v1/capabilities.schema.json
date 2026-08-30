@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/capabilities.schema.json",
+  "title": "trader20.control.v1 capabilities envelope",
+  "allOf": [
+    {"$ref": "read-envelope.schema.json"},
+    {
+      "properties": {
+        "operation": {"const": "capabilities"},
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["operations", "provider_endpoint", "write_capabilities", "signing_available", "account_configured"],
+          "properties": {
+            "operations": {
+              "type": "array",
+              "prefixItems": [
+                {"const": "capabilities"}, {"const": "status"}, {"const": "positions"},
+                {"const": "orders"}, {"const": "history"}, {"const": "explain_blocker"},
+                {"const": "runtime_health"}
+              ],
+              "items": false,
+              "minItems": 7,
+              "maxItems": 7
+            },
+            "provider_endpoint": {"const": "/info"},
+            "write_capabilities": {"type": "array", "maxItems": 0},
+            "signing_available": {"const": false},
+            "account_configured": {"type": "boolean"}
+          }
+        }
+      }
+    }
+  ]
+}

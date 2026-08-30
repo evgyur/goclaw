@@ -1,0 +1,15 @@
+{
+  "schema": "trader20.compatibility-fixtures.v1",
+  "fixtures": [
+    {
+      "operation": "status",
+      "goclaw": {"protocol": "trader20.control.v1", "operation": "status", "captured_at": "2026-08-30T12:00:00Z", "source_timestamp": "2026-08-30T12:00:00Z", "stale": false, "degraded": false, "candidate_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "policy_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "data": {"margin_summary": {"accountValue": "42"}, "cross_margin_summary": {}, "withdrawable": "42"}},
+      "hermes": {"protocol": "trader20.control.v1", "operation": "status", "captured_at": "2026-08-30T12:00:00Z", "source_timestamp": "2026-08-30T12:00:00Z", "stale": false, "degraded": false, "candidate_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "policy_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "data": {"margin_summary": {"accountValue": "42"}, "cross_margin_summary": {}, "withdrawable": "42"}}
+    },
+    {
+      "operation": "orders",
+      "goclaw": {"protocol": "trader20.control.v1", "operation": "orders", "captured_at": "2026-08-30T12:00:00Z", "stale": false, "degraded": true, "reason": "source timestamp unavailable", "data": []},
+      "hermes": {"protocol": "trader20.control.v1", "operation": "orders", "captured_at": "2026-08-30T12:00:00Z", "stale": false, "degraded": true, "reason": "source timestamp unavailable", "data": []}
+    }
+  ]
+}

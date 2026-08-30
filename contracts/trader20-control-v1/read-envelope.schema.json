@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/read-envelope.schema.json",
+  "title": "trader20.control.v1 read envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "operation", "captured_at", "stale", "degraded", "data"],
+  "properties": {
+    "protocol": {"const": "trader20.control.v1"},
+    "operation": {
+      "enum": ["capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health"]
+    },
+    "captured_at": {"type": "string", "format": "date-time"},
+    "source_timestamp": {"type": "string", "format": "date-time"},
+    "stale": {"type": "boolean"},
+    "degraded": {"type": "boolean"},
+    "reason": {"type": "string"},
+    "candidate_sha": {"type": "string", "pattern": "^[0-9a-fA-F]{40}$"},
+    "policy_hash": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+    "data": {}
+  }
+}
