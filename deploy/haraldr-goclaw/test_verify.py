@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import unittest
 from pathlib import Path
@@ -30,6 +31,7 @@ class HaraldrGoClawReleaseTest(unittest.TestCase):
         self.assertTrue(receipt["activation_authorized"])
         self.assertEqual("A06-deploy-cutover", receipt["phase"])
         self.assertEqual(8, receipt["tool_allow_count"])
+        self.assertEqual("full", json.loads((HERE / "config.json5").read_text())["tools"]["profile"])
 
     def test_provisioning_payload_is_predefined_disabled_and_read_only(self) -> None:
         plans = provision.payloads()

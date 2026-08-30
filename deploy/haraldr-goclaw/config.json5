@@ -40,7 +40,7 @@
   },
   "bindings": [],
   "tools": {
-    "profile": "minimal",
+    "profile": "full",
     "allow": [
       "trader20_capabilities",
       "trader20_status",

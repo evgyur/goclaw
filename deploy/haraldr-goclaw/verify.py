@@ -100,6 +100,8 @@ def verify() -> dict:
     agent_tools = provisioned["agent"]["tools_config"]
     if set(tools["allow"]) != READ_ONLY_TOOLS or set(agent_tools["allow"]) != READ_ONLY_TOOLS:
         errors.append("effective allowlist is not the exact Trader20 read-only set")
+    if tools.get("profile") != "full":
+        errors.append("tool profile must begin with the full registry before the explicit allowlist intersection")
     if not DENIED.issubset(set(tools["deny"])) or not DENIED.issubset(set(agent_tools["deny"])):
         errors.append("required tool denylist is incomplete")
     if set(policy["allow_tools"]) != READ_ONLY_TOOLS or policy["effect_scope"] != "repo_mutation":
