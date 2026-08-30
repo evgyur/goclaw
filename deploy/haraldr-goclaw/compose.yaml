@@ -1,0 +1,83 @@
+name: haraldr-goclaw
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: haraldr_goclaw
+      POSTGRES_USER: haraldr_goclaw
+      POSTGRES_PASSWORD: ${HARALDR_GOCLAW_POSTGRES_PASSWORD:?required}
+    volumes:
+      - haraldr-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U haraldr_goclaw -d haraldr_goclaw"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    networks: [haraldr-internal]
+    restart: unless-stopped
+
+  goclaw:
+    image: haraldr-goclaw-runtime:b3e54d64500ebdbac55ea935b1d91c470dd95695
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        ENABLE_EMBEDUI: "true"
+        ENABLE_PYTHON: "false"
+        ENABLE_FULL_SKILLS: "false"
+        VERSION: b3e54d64500ebdbac55ea935b1d91c470dd95695
+    depends_on:
+      postgres: {condition: service_healthy}
+    ports:
+      - "127.0.0.1:19972:18790"
+    environment:
+      GOCLAW_HOST: 0.0.0.0
+      GOCLAW_PORT: "18790"
+      GOCLAW_CONFIG: /app/config/config.json5
+      GOCLAW_DATA_DIR: /app/data
+      GOCLAW_WORKSPACE: /app/workspace
+      GOCLAW_POSTGRES_DSN: postgres://haraldr_goclaw:${HARALDR_GOCLAW_POSTGRES_PASSWORD:?required}@postgres:5432/haraldr_goclaw?sslmode=disable
+      GOCLAW_GATEWAY_TOKEN: ${HARALDR_GOCLAW_GATEWAY_TOKEN:?required}
+      GOCLAW_ENCRYPTION_KEY: ${HARALDR_GOCLAW_ENCRYPTION_KEY:?required}
+      GOCLAW_PROVIDER: openai
+      GOCLAW_MODEL: h20-gpt
+      GOCLAW_OPENAI_BASE_URL: https://keys.human20.app/v1
+      GOCLAW_OPENAI_API_KEY: ${H20_KEYS_API_KEY:?required}
+      GOCLAW_TRACE_VERBOSE: "0"
+    configs:
+      - source: haraldr-goclaw-config
+        target: /app/config/config.json5
+        mode: 0444
+    volumes:
+      - haraldr-goclaw-data:/app/data
+      - haraldr-goclaw-workspace:/app/workspace
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=128m"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    cap_add: ["SETUID", "SETGID", "CHOWN"]
+    networks: [haraldr-internal]
+    restart: unless-stopped
+
+configs:
+  haraldr-goclaw-config:
+    file: ./config.json5
+
+volumes:
+  haraldr-postgres-data:
+    name: haraldr-goclaw-postgres-data
+  haraldr-goclaw-data:
+    name: haraldr-goclaw-data
+  haraldr-goclaw-workspace:
+    name: haraldr-goclaw-workspace
+
+networks:
+  haraldr-internal:
+    name: haraldr-goclaw-internal
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.253.83.0/28

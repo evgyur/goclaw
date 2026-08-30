@@ -1,0 +1,51 @@
+{
+  "schema": "trader20.haraldr-goclaw-policy.v1",
+  "phase": "A03-offline-read-only",
+  "agent": "haraldr-trader20",
+  "effect_scope": "read_only",
+  "allow_tools": [
+    "trader20_capabilities",
+    "trader20_status",
+    "trader20_positions",
+    "trader20_orders",
+    "trader20_history",
+    "trader20_explain_blocker",
+    "trader20_runtime_health"
+  ],
+  "deny_tools": [
+    "exec", "shell", "publish_skill", "skill_manage", "write_file", "edit",
+    "browser", "web_fetch", "web_search", "cron", "delegate", "spawn",
+    "message", "image_generation"
+  ],
+  "deny_capabilities": [
+    "native command execution",
+    "production skill publication or management",
+    "browser automation",
+    "generic web access",
+    "scheduling",
+    "delegation",
+    "host filesystem paths",
+    "Docker socket or API",
+    "service manager",
+    "raw network tools",
+    "wallet or signer access",
+    "order, cancel, close, transfer, or withdrawal"
+  ],
+  "forbidden_mounts": [
+    "/var/run/docker.sock",
+    "/etc",
+    "/opt/trader20-v3",
+    "/var/lib/trader20-v3",
+    "/home/hermes",
+    "pear-goclaw"
+  ],
+  "forbidden_secret_classes": [
+    "telegram token",
+    "wallet private key",
+    "signer key",
+    "Privy credential",
+    "exchange agent credential",
+    "trading account credential",
+    "GitHub credential"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "data_dir": "/app/data",
+  "gateway": {
+    "host": "0.0.0.0",
+    "port": 18790,
+    "max_message_chars": 12000,
+    "rate_limit_rpm": 20
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/app/workspace",
+      "restrict_to_workspace": true,
+      "provider": "h20-keys",
+      "model": "h20-gpt",
+      "max_tokens": 4096,
+      "temperature": 0.1,
+      "max_tool_iterations": 8,
+      "max_tool_calls": 12,
+      "context_window": 131072,
+      "memory": {"enabled": true, "max_results": 8}
+    }
+  },
+  "providers": {
+    "openai": {"api_base": "https://keys.human20.app/v1"}
+  },
+  "channels": {
+    "telegram": {
+      "enabled": false,
+      "token": "",
+      "dm_policy": "disabled",
+      "group_policy": "disabled",
+      "allow_from": [],
+      "require_mention": true,
+      "dm_stream": false,
+      "group_stream": false,
+      "reaction_level": "off",
+      "history_limit": 0,
+      "link_preview": false
+    }
+  },
+  "bindings": [],
+  "tools": {
+    "profile": "minimal",
+    "allow": [
+      "trader20_capabilities",
+      "trader20_status",
+      "trader20_positions",
+      "trader20_orders",
+      "trader20_history",
+      "trader20_explain_blocker",
+      "trader20_runtime_health"
+    ],
+    "deny": [
+      "exec", "shell", "publish_skill", "skill_manage", "write_file", "edit",
+      "browser", "web_fetch", "web_search", "cron", "delegate", "spawn",
+      "message", "image_generation"
+    ],
+    "rate_limit_per_hour": 120,
+    "scrub_credentials": true,
+    "execApproval": {"security": "deny", "ask": "off", "allowlist": []},
+    "browser": {"enabled": false},
+    "web_fetch": {"policy": "allowlist", "allowed_domains": [], "blocked_domains": ["*"]},
+    "mcp_servers": {
+      "trader20_readonly": {
+        "transport": "streamable-http",
+        "url": "http://trader20-readonly:8000/mcp",
+        "tool_prefix": "",
+        "timeout_sec": 30
+      }
+    }
+  }
+}

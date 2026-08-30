@@ -1,0 +1,18 @@
+{
+  "schema": "trader20.haraldr-goclaw-scaffold.v1",
+  "phase": "A03-offline-scaffold",
+  "source_commit": "b3e54d64500ebdbac55ea935b1d91c470dd95695",
+  "source_tree": "9f719ae2cd85a64e7fb6702cd9e891ef3ed61e46",
+  "runtime_image": "haraldr-goclaw-runtime:b3e54d64500ebdbac55ea935b1d91c470dd95695",
+  "runtime_image_digest": null,
+  "runtime_image_digest_gate": "required after offline build and before provisioning or start",
+  "a02": {
+    "protocol": "trader20.control.v1",
+    "contract_hash": "2c9a84bfdb7d60ab1c8e1f247084795eef7e2e1043a125b6fe03e2524e03b516",
+    "core_hash": "2f9e790c859797288a7d89b5567e565946a9992acbc38ac48cfb15e864ffd807",
+    "goclaw_projection_hash": "f79c3109fe4ac5950c206797d3d68d3ba26d8bed480e288b251e92ce6c41ce8d"
+  },
+  "activation_authorized": false,
+  "telegram_enabled": false,
+  "money_effects_authorized": false
+}
