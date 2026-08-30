@@ -32,6 +32,7 @@ class A04SandboxPolicyTest(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertIn(value, runner if value != "internal: true" else self.compose)
         self.assertIn("USER 65532:65532", self.dockerfile)
+        self.assertIn("/tmp:rw,exec,nosuid,size=256m", runner)
 
     def test_runner_shares_only_workspace_and_no_credentials_or_host_mounts(self) -> None:
         runner = self.compose.split("  code-runner:\n", 1)[1].split("\nconfigs:\n", 1)[0]
