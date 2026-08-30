@@ -152,6 +152,8 @@ def verify() -> dict:
         errors.append("Telegram token must be installed through encrypted channel credentials, not container environment")
     if "--enable-telegram" not in (HERE / "provision.py").read_text():
         errors.append("A06 package has no explicit Telegram cutover command")
+    if "enable_trader20_tools" not in (HERE / "provision.py").read_text():
+        errors.append("A06 package does not enable the disabled-by-default Trader20 builtin tools")
     if 'cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETGID", "SETUID"]' not in compose:
         errors.append("PostgreSQL entrypoint cannot initialize its volume and drop privileges")
 

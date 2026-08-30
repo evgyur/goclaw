@@ -47,6 +47,23 @@ class HaraldrGoClawReleaseTest(unittest.TestCase):
         self.assertFalse(plans["channel"]["enabled"])
         self.assertEqual({}, plans["channel"]["credentials"])
 
+    def test_builtin_read_only_tools_are_enabled_with_exact_readback(self) -> None:
+        calls = []
+
+        def fake_request(_token, method, path, body=None):
+            calls.append((method, path, body))
+            name = path.rsplit("/", 1)[-1]
+            if method == "GET":
+                return {"name": name, "enabled": True}
+            return {"status": "updated"}
+
+        with mock.patch.object(provision, "request", side_effect=fake_request):
+            enabled = provision.enable_trader20_tools("gateway-test-token")
+        self.assertEqual(provision.TRADER20_BUILTIN_TOOLS, enabled)
+        for name in provision.TRADER20_BUILTIN_TOOLS:
+            self.assertIn(("PUT", f"/v1/tools/builtin/{name}", {"enabled": True}), calls)
+            self.assertIn(("GET", f"/v1/tools/builtin/{name}", None), calls)
+
     def test_telegram_cutover_is_owner_only_and_requires_explicit_authority(self) -> None:
         with self.assertRaises(RuntimeError):
             provision.set_telegram_enabled(True)

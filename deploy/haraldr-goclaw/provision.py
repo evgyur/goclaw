@@ -19,6 +19,7 @@ READ_ONLY_TOOLS = [
     "trader20_runtime_health",
     "coding_exec",
 ]
+TRADER20_BUILTIN_TOOLS = READ_ONLY_TOOLS[:-1]
 DENIED_TOOLS = [
     "exec", "shell", "publish_skill", "skill_manage", "write_file", "edit",
     "browser", "web_fetch", "web_search", "cron", "delegate", "spawn",
@@ -101,12 +102,25 @@ def apply() -> None:
     created_channel = request(token, "POST", "/v1/channels/instances", channel)
     if created_channel.get("enabled") is not False:
         raise RuntimeError("Telegram channel readback is not disabled")
+    enabled_tools = enable_trader20_tools(token)
     print(json.dumps({
         "provider_id": created_provider.get("id"),
         "agent_id": created_agent.get("id"),
         "channel_id": created_channel.get("id"),
         "channel_enabled": False,
+        "enabled_builtin_tools": enabled_tools,
     }, sort_keys=True))
+
+
+def enable_trader20_tools(token: str) -> list[str]:
+    enabled = []
+    for name in TRADER20_BUILTIN_TOOLS:
+        request(token, "PUT", f"/v1/tools/builtin/{name}", {"enabled": True})
+        readback = request(token, "GET", f"/v1/tools/builtin/{name}")
+        if readback.get("name") != name or readback.get("enabled") is not True:
+            raise RuntimeError(f"builtin tool enable readback failed: {name}")
+        enabled.append(name)
+    return enabled
 
 
 def set_telegram_enabled(enabled: bool) -> None:
