@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
 
   goclaw:
-    image: haraldr-goclaw-runtime:b62cd96571b03b70c4154adaccf5d90a42a96930
+    image: haraldr-goclaw-runtime:95b66ca50d00a7c722745d8528e69c22e5ccb865
     build:
       context: ../..
       dockerfile: Dockerfile
@@ -30,7 +30,7 @@ services:
         ENABLE_EMBEDUI: "true"
         ENABLE_PYTHON: "false"
         ENABLE_FULL_SKILLS: "false"
-        VERSION: b62cd96571b03b70c4154adaccf5d90a42a96930
+        VERSION: 95b66ca50d00a7c722745d8528e69c22e5ccb865
     depends_on:
       postgres: {condition: service_healthy}
     ports:
