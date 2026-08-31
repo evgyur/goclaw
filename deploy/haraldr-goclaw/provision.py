@@ -17,6 +17,8 @@ READ_ONLY_TOOLS = [
     "trader20_history",
     "trader20_explain_blocker",
     "trader20_runtime_health",
+    "trader20_plan_trade",
+    "trader20_execute_plan",
     "coding_exec",
 ]
 TRADER20_BUILTIN_TOOLS = READ_ONLY_TOOLS[:-1]

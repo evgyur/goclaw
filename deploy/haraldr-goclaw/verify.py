@@ -12,12 +12,12 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-EXPECTED_COMMIT = "488dfb79ba150a6b0c456627c4633710a785b307"
-EXPECTED_TREE = "82253ac93ef5ebd7fd2b487584ef77ae6c986b6f"
-READ_ONLY_TOOLS = {
+EXPECTED_COMMIT = "2eae8996575bafc469ac6bb89f9a367635f1eba0"
+EXPECTED_TREE = "53b930c30d7c99fab847aa434f3995d612a8145f"
+BOUNDED_TOOLS = {
     "trader20_capabilities", "trader20_status", "trader20_positions",
     "trader20_orders", "trader20_history", "trader20_explain_blocker",
-    "trader20_runtime_health", "coding_exec",
+    "trader20_runtime_health", "trader20_plan_trade", "trader20_execute_plan", "coding_exec",
 }
 DENIED = {
     "exec", "shell", "publish_skill", "skill_manage", "write_file", "edit",
@@ -98,14 +98,14 @@ def verify() -> dict:
 
     tools = config["tools"]
     agent_tools = provisioned["agent"]["tools_config"]
-    if set(tools["allow"]) != READ_ONLY_TOOLS or set(agent_tools["allow"]) != READ_ONLY_TOOLS:
-        errors.append("effective allowlist is not the exact Trader20 read-only set")
+    if set(tools["allow"]) != BOUNDED_TOOLS or set(agent_tools["allow"]) != BOUNDED_TOOLS:
+        errors.append("effective allowlist is not the exact bounded Trader20 set")
     if tools.get("profile") != "full":
         errors.append("tool profile must begin with the full registry before the explicit allowlist intersection")
     if not DENIED.issubset(set(tools["deny"])) or not DENIED.issubset(set(agent_tools["deny"])):
         errors.append("required tool denylist is incomplete")
-    if set(policy["allow_tools"]) != READ_ONLY_TOOLS or policy["effect_scope"] != "repo_mutation":
-        errors.append("effective policy is not exact read-only plus bounded coding_exec")
+    if set(policy["allow_tools"]) != BOUNDED_TOOLS or policy["effect_scope"] != "repo_mutation":
+        errors.append("effective policy is not exact bounded Trader20 plus coding_exec")
     if config["tools"]["execApproval"] != {"security": "deny", "ask": "off", "allowlist": []}:
         errors.append("native exec approval is not deny/off")
     if config["tools"]["browser"].get("enabled") is not False:
@@ -161,7 +161,7 @@ def verify() -> dict:
         raise AssertionError("; ".join(errors))
     return {
         "ok": True,
-        "phase": "A06-deploy-cutover",
+        "phase": "B02-bounded-control-projections",
         "candidate_commit": EXPECTED_COMMIT,
         "candidate_tree": source_tree,
         "scaffold_commit": head,
@@ -171,7 +171,7 @@ def verify() -> dict:
         "agent": "haraldr-trader20",
         "provider": "h20-keys",
         "model": "h20-gpt",
-        "tool_allow_count": len(READ_ONLY_TOOLS),
+        "tool_allow_count": len(BOUNDED_TOOLS),
         "telegram_enabled": True,
         "activation_authorized": True,
     }

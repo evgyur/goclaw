@@ -29,8 +29,8 @@ class HaraldrGoClawReleaseTest(unittest.TestCase):
         self.assertTrue(receipt["ok"])
         self.assertTrue(receipt["telegram_enabled"])
         self.assertTrue(receipt["activation_authorized"])
-        self.assertEqual("A06-deploy-cutover", receipt["phase"])
-        self.assertEqual(8, receipt["tool_allow_count"])
+        self.assertEqual("B02-bounded-control-projections", receipt["phase"])
+        self.assertEqual(10, receipt["tool_allow_count"])
         self.assertEqual("full", json.loads((HERE / "config.json5").read_text())["tools"]["profile"])
 
     def test_provisioning_payload_is_predefined_disabled_and_read_only(self) -> None:
@@ -39,8 +39,8 @@ class HaraldrGoClawReleaseTest(unittest.TestCase):
         self.assertEqual("predefined", agent["agent_type"])
         self.assertEqual("h20-keys", agent["provider"])
         self.assertEqual("h20-gpt", agent["model"])
-        self.assertEqual(set(verifier.READ_ONLY_TOOLS), set(agent["tools_config"]["allow"]))
-        self.assertEqual(set(verifier.READ_ONLY_TOOLS), set(agent["tools_config"]["alsoAllow"]))
+        self.assertEqual(set(verifier.BOUNDED_TOOLS), set(agent["tools_config"]["allow"]))
+        self.assertEqual(set(verifier.BOUNDED_TOOLS), set(agent["tools_config"]["alsoAllow"]))
         self.assertTrue(verifier.DENIED.issubset(set(agent["tools_config"]["deny"])))
         self.assertFalse(agent["subagents_config"]["enabled"])
         self.assertFalse(agent["self_evolve"])

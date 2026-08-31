@@ -1,6 +1,6 @@
 {
   "schema": "trader20.haraldr-goclaw-policy.v1",
-  "phase": "A04-offline-bounded-coding",
+  "phase": "B02-bounded-control-projections",
   "agent": "haraldr-trader20",
   "effect_scope": "repo_mutation",
   "allow_tools": [
@@ -11,6 +11,8 @@
     "trader20_history",
     "trader20_explain_blocker",
     "trader20_runtime_health",
+    "trader20_plan_trade",
+    "trader20_execute_plan",
     "coding_exec"
   ],
   "deny_tools": [
