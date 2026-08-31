@@ -165,6 +165,17 @@ func (s *Seeder) CheckDepsAsync(skills []seededSkill, msgBus *bus.MessageBus) {
 		for _, sk := range skills {
 			manifest := ScanSkillDeps(sk.baseDir)
 			if manifest == nil || manifest.IsEmpty() {
+				if err := s.store.StoreMissingDeps(context.Background(), sk.id, nil); err != nil {
+					slog.Warn("seeder: failed to clear stale skill deps", "slug", sk.slug, "error", err)
+				}
+				if err := s.store.UpdateSkill(
+					store.WithTenantID(context.Background(), store.MasterTenantID),
+					sk.id,
+					map[string]interface{}{"status": "active"},
+				); err != nil {
+					slog.Warn("seeder: failed to reactivate dependency-free skill", "slug", sk.slug, "error", err)
+				}
+				s.store.BumpVersion()
 				emitDepEvent(msgBus, sk.slug, "active", nil)
 				checked++
 				continue
