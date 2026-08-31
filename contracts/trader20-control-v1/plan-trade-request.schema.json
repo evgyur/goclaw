@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/plan-trade-request.schema.json",
+  "title": "trader20.control.v1 plan_trade request",
+  "type": "object",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {"properties": {"lane": {"const": "OPERATOR_REQUEST"}}},
+      "then": {"properties": {"operator_receipt": {"$ref": "operator-request-receipt.schema.json"}}},
+      "else": {"properties": {"operator_receipt": {"type": "null"}}}
+    }
+  ],
+  "required": ["protocol", "operation", "idempotency_key", "lane", "effect_class", "side", "reduce_only", "instrument", "requested_notional_usdc", "mirror_cap_usdc", "liquidity_cap_usdc", "concentration_cap_usdc", "leverage", "stress_stop_bps", "slippage_bps", "campaign_id", "cluster_id", "protection", "candidate_commit", "candidate_tree", "account_fingerprint", "policy_hash", "market_catalog_hash", "expires_at_ms", "source_event_hash", "operator_receipt"],
+  "properties": {
+    "protocol": {"const": "trader20.control.v1"},
+    "operation": {"const": "plan_trade"},
+    "idempotency_key": {"$ref": "types.schema.json#/$defs/identifier"},
+    "lane": {"enum": ["NATURAL_SIGNAL", "OPERATOR_REQUEST"]},
+    "effect_class": {"enum": ["ENTRY", "EXIT", "PROTECTION"]},
+    "side": {"enum": ["BUY", "SELL"]},
+    "reduce_only": {"type": "boolean"},
+    "instrument": {"$ref": "types.schema.json#/$defs/instrumentIdentity"},
+    "requested_notional_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "mirror_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "liquidity_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "concentration_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "leverage": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "stress_stop_bps": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "slippage_bps": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "campaign_id": {"$ref": "types.schema.json#/$defs/identifier"},
+    "cluster_id": {"$ref": "types.schema.json#/$defs/identifier"},
+    "protection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "reduce_only", "stop_kind", "max_unprotected_ms"],
+      "properties": {
+        "required": {"const": true},
+        "reduce_only": {"const": true},
+        "stop_kind": {"enum": ["SYNTHETIC_IMMEDIATE", "FOLLOWER_OWNED_IMMEDIATE"]},
+        "max_unprotected_ms": {"type": "integer", "minimum": 0, "maximum": 5000}
+      }
+    },
+    "candidate_commit": {"$ref": "types.schema.json#/$defs/commit"},
+    "candidate_tree": {"$ref": "types.schema.json#/$defs/commit"},
+    "account_fingerprint": {"$ref": "types.schema.json#/$defs/sha256"},
+    "policy_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "market_catalog_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "expires_at_ms": {"type": "integer", "minimum": 1},
+    "source_event_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "operator_receipt": {"oneOf": [{"type": "null"}, {"$ref": "operator-request-receipt.schema.json"}]}
+  }
+}

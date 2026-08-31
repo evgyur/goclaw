@@ -11,6 +11,8 @@ func TestBuiltinTrader20ToolsAreReadOnlyGrantSurfaceAndDisabledByDefault(t *test
 		"trader20_history":         false,
 		"trader20_explain_blocker": false,
 		"trader20_runtime_health":  false,
+		"trader20_plan_trade":      false,
+		"trader20_execute_plan":    false,
 	}
 	for _, def := range builtinToolSeedData() {
 		if _, ok := want[def.Name]; !ok {

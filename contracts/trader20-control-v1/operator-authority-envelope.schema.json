@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/operator-authority-envelope.schema.json",
+  "title": "Candidate-bound bounded operator execution authority",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "authority_hash", "candidate_commit", "candidate_tree", "account_fingerprint", "policy_hash", "owner_sender_id_hash", "allowed_principals", "allowed_clients", "allowed_origins", "authority_nonce", "issued_at_ms", "expires_at_ms", "max_execution_intents", "max_gross_notional_usdc", "execution_max_slippage_bps", "signature_algorithm", "signing_key_id", "signature"],
+  "properties": {
+    "schema": {"const": "trader20.control.operator-authority-envelope.v1"},
+    "authority_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "candidate_commit": {"$ref": "types.schema.json#/$defs/commit"},
+    "candidate_tree": {"$ref": "types.schema.json#/$defs/commit"},
+    "account_fingerprint": {"$ref": "types.schema.json#/$defs/sha256"},
+    "policy_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "owner_sender_id_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "allowed_principals": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "types.schema.json#/$defs/identifier"}},
+    "allowed_clients": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "types.schema.json#/$defs/identifier"}},
+    "allowed_origins": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "types.schema.json#/$defs/identifier"}},
+    "authority_nonce": {"$ref": "types.schema.json#/$defs/identifier"},
+    "issued_at_ms": {"type": "integer", "minimum": 0},
+    "expires_at_ms": {"type": "integer", "minimum": 1},
+    "max_execution_intents": {"type": "integer", "minimum": 1, "maximum": 1000},
+    "max_gross_notional_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "execution_max_slippage_bps": {"oneOf": [{"const": "5"}, {"const": 5}]},
+    "signature_algorithm": {"const": "Ed25519"},
+    "signing_key_id": {"$ref": "types.schema.json#/$defs/identifier"},
+    "signature": {"type": "string", "minLength": 16, "maxLength": 256}
+  }
+}

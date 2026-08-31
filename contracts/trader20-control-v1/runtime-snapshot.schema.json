@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/runtime-snapshot.schema.json",
+  "title": "Exact account/candidate/runtime readback",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "candidate_commit", "candidate_tree", "account_fingerprint", "policy_hash", "market_catalog_hash", "operator_authority_hash", "operator_authority", "captured_at_ms", "instruments", "available_margin_usdc", "daily_loss_usdc", "open_positions", "open_notional_usdc", "gross_initial_margin_usdc", "campaign_reserved_risk_usdc", "cluster_reserved_risk_usdc", "source_healthy", "protection_ready", "one_writer", "writer_id", "pending_effect_classes_clear"],
+  "properties": {
+    "schema": {"const": "trader20.control.runtime-snapshot.v1"},
+    "candidate_commit": {"$ref": "types.schema.json#/$defs/commit"},
+    "candidate_tree": {"$ref": "types.schema.json#/$defs/commit"},
+    "account_fingerprint": {"$ref": "types.schema.json#/$defs/sha256"},
+    "policy_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "market_catalog_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "operator_authority_hash": {"oneOf": [{"type": "null"}, {"$ref": "types.schema.json#/$defs/sha256"}]},
+    "operator_authority": {"oneOf": [{"type": "null"}, {"$ref": "operator-authority-envelope.schema.json"}]},
+    "captured_at_ms": {"type": "integer", "minimum": 0},
+    "instruments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["symbol", "asset_id", "dex", "is_hip3", "mark_price", "sz_decimals", "min_notional_usdc", "captured_at_ms", "owned_position_notional_usdc", "owned_position_side"],
+        "properties": {
+          "symbol": {"type": "string", "minLength": 1},
+          "asset_id": {"type": "integer", "minimum": 0},
+          "dex": {"type": "string", "minLength": 1},
+          "is_hip3": {"type": "boolean"},
+          "mark_price": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+          "sz_decimals": {"type": "integer", "minimum": 0, "maximum": 12},
+          "min_notional_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+          "captured_at_ms": {"type": "integer", "minimum": 0},
+          "owned_position_notional_usdc": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+          "owned_position_side": {"enum": ["LONG", "SHORT", "FLAT"]}
+        }
+      }
+    },
+    "available_margin_usdc": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "daily_loss_usdc": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "open_positions": {"type": "integer", "minimum": 0},
+    "open_notional_usdc": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "gross_initial_margin_usdc": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "campaign_reserved_risk_usdc": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "cluster_reserved_risk_usdc": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "source_healthy": {"type": "boolean"},
+    "protection_ready": {"type": "boolean"},
+    "one_writer": {"type": "boolean"},
+    "writer_id": {"$ref": "types.schema.json#/$defs/identifier"},
+    "pending_effect_classes_clear": {"type": "boolean"}
+  }
+}

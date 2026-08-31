@@ -10,21 +10,28 @@
         "data": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["operations", "provider_endpoint", "write_capabilities", "signing_available", "account_configured"],
+          "required": ["operations", "provider_endpoint", "control_endpoint_configured", "write_capabilities", "signing_available", "account_configured"],
           "properties": {
             "operations": {
               "type": "array",
               "prefixItems": [
                 {"const": "capabilities"}, {"const": "status"}, {"const": "positions"},
                 {"const": "orders"}, {"const": "history"}, {"const": "explain_blocker"},
-                {"const": "runtime_health"}
+                {"const": "runtime_health"}, {"const": "plan_trade"}, {"const": "execute_plan"}
               ],
               "items": false,
-              "minItems": 7,
-              "maxItems": 7
+              "minItems": 9,
+              "maxItems": 9
             },
             "provider_endpoint": {"const": "/info"},
-            "write_capabilities": {"type": "array", "maxItems": 0},
+            "control_endpoint_configured": {"type": "boolean"},
+            "write_capabilities": {
+              "type": "array",
+              "prefixItems": [{"const": "plan_trade"}, {"const": "execute_plan"}],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
             "signing_available": {"const": false},
             "account_configured": {"type": "boolean"}
           }

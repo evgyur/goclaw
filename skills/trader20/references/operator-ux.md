@@ -1,7 +1,9 @@
 # Operator UX
 
-Lead with the observed state and its timestamp. Label degraded or stale evidence plainly. Name the logical operation used and include candidate/policy identities only when the envelope supplies them.
+Lead with observed state and evidence time. Label degraded or stale evidence plainly. Name the logical operation and include only non-private candidate, policy, authority, plan, and intent identities supplied by the tool.
 
-For unavailable data, state the exact blocker without guessing. For direct trade, order-write, cancel, close, wallet, transfer, or withdrawal requests, say that this Release-A surface is read-only and did not perform the effect.
+For `plan_trade`, show the deterministic instrument, side, rounded notional, quantity, slippage, stress risk, margin, protection requirement, expiry, and limiting bounds. State `planned, not executed`.
 
-Do not expose private account identifiers. Do not call an old snapshot live, silently rewrite token names, narrow instrument support, or turn model prose into a receipt.
+For `execute_plan`, distinguish `PERSISTED`, `CLAIMED`, `ACKNOWLEDGED`, `UNKNOWN_RECONCILING`, `TERMINAL_SUCCESS`, and `TERMINAL_FAILURE`. Never turn an acknowledgement into a fill. Execution requires provider order/fill/position/protection/ledger evidence; terminal closure also requires no unexplained residual orders or positions.
+
+For unavailable data or denied effects, state the exact blocker without guessing. Never ask the model to invent an authority receipt, normalize an identifier, expose a private account, call a broad shell, or bypass the incumbent writer.

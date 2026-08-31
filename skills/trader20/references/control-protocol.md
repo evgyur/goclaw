@@ -1,17 +1,21 @@
-# trader20.control.v1 read protocol
+# trader20.control.v1 protocol
 
-The canonical normalized envelope is defined by `contracts/trader20-control-v1/read-envelope.schema.json`.
+Allowed logical operations, in canonical order:
 
-Allowed logical operations are exactly:
+1. `capabilities`
+2. `status`
+3. `positions`
+4. `orders`
+5. `history`
+6. `explain_blocker`
+7. `runtime_health`
+8. `plan_trade`
+9. `execute_plan`
 
-- `capabilities`
-- `status`
-- `positions`
-- `orders`
-- `history`
-- `explain_blocker`
-- `runtime_health`
+The first seven operations are observation-only. Their normalized envelope is `contracts/trader20-control-v1/read-envelope.schema.json`.
 
-Every operation is observation-only. The transport may issue only approved Hyperliquid `/info` requests. There is no execute, sign, trade, place, amend, cancel, close, transfer, withdrawal, wallet, or builder operation in Release A.
+`plan_trade` accepts only the exact schema in `contracts/trader20-control-v1/plan-trade-request.schema.json`. `execute_plan` accepts only `execute-plan-request.schema.json`. `OPERATOR_REQUEST` requires a separately typed receipt at both stages; `NATURAL_SIGNAL` must carry null. The authority envelope, runtime snapshot, risk policy, and receipt schemas are packaged with both platform projections from the same source commit and core hash.
 
-A response is live only when the tool succeeds, identity bindings are present where required, and both `stale` and `degraded` are false. `captured_at` is observation time; `source_timestamp` is source evidence time when available. Missing source time must not be invented.
+The client never signs or calls an exchange write endpoint. Effectful requests go only to the Trader20 control service, which persists and fsyncs before acknowledgement and hands a claimed intent to the incumbent writer. Missing control transport or authority fails closed.
+
+A response is live only when identity bindings are present and freshness/degraded fields permit that interpretation. Provider ambiguity is `UNKNOWN_RECONCILING`; it never authorizes blind retry.

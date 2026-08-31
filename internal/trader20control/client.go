@@ -108,11 +108,12 @@ func validateInfoURL(raw string, allowLoopbackHTTP bool) error {
 
 func (c *Client) Capabilities() Envelope {
 	data, _ := json.Marshal(map[string]any{
-		"operations":         []string{"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health"},
-		"provider_endpoint":  "/info",
-		"write_capabilities": []string{},
-		"signing_available":  false,
-		"account_configured": true,
+		"operations":                  []string{"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health", "plan_trade", "execute_plan"},
+		"provider_endpoint":           "/info",
+		"control_endpoint_configured": false,
+		"write_capabilities":          []string{"plan_trade", "execute_plan"},
+		"signing_available":           false,
+		"account_configured":          true,
 	})
 	return c.envelope("capabilities", data, nil, false, "")
 }

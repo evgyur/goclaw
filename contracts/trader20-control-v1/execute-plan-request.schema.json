@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/execute-plan-request.schema.json",
+  "title": "trader20.control.v1 execute_plan request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "operation", "idempotency_key", "plan_hash", "operator_receipt"],
+  "properties": {
+    "protocol": {"const": "trader20.control.v1"},
+    "operation": {"const": "execute_plan"},
+    "idempotency_key": {"$ref": "types.schema.json#/$defs/identifier"},
+    "plan_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "operator_receipt": {"oneOf": [{"type": "null"}, {"$ref": "operator-request-receipt.schema.json"}]}
+  }
+}

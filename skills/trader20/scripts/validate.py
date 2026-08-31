@@ -6,7 +6,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-OPERATIONS = ("capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health")
+READ_OPERATIONS = ("capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health")
+OPERATIONS = READ_OPERATIONS + ("plan_trade", "execute_plan")
 REJECTION_CATEGORIES = {
     "account_conflation",
     "stale_as_live",
@@ -14,11 +15,17 @@ REJECTION_CATEGORIES = {
     "instrument_narrowing",
     "unsupported_claim",
     "fabricated_execution_receipt",
+    "plan_as_authority",
+    "stale_or_mismatched_receipt",
+    "forbidden_tool_bypass",
+    "acknowledgement_as_execution",
 }
 REQUIRED_ROOT_NEEDLES = (
-    "strictly read-only",
     "Never normalize or repair an identifier",
     "Never invent an execution",
+    "fresh authenticated `PLAN` receipt",
+    "fresh authenticated `EXECUTE` receipt",
+    "no raw exchange credential",
     "HIP-3",
     "stale=true",
     "degraded=true",
@@ -50,8 +57,8 @@ def validate(base: Path | None = None) -> list[str]:
 
     schema = load(base / "contracts/trader20-control-v1/read-envelope.schema.json")
     schema_ops = tuple(schema["properties"]["operation"]["enum"])
-    if schema_ops != OPERATIONS:
-        errors.append("schema operation allowlist differs from canonical order")
+    if schema_ops != READ_OPERATIONS:
+        errors.append("read schema operation allowlist differs from canonical read order")
     if schema.get("additionalProperties") is not False:
         errors.append("read envelope must reject unknown top-level fields")
     for name, operation in (("capabilities.schema.json", "capabilities"), ("status.schema.json", "status")):
@@ -69,9 +76,15 @@ def validate(base: Path | None = None) -> list[str]:
         if adapter.get("protocol") != "trader20.control.v1":
             errors.append(f"{platform} adapter protocol mismatch")
         if adapter.get("operations") != expected_targets:
-            errors.append(f"{platform} adapter operation map is not the exact read-only allowlist")
+            errors.append(f"{platform} adapter operation map is not the exact canonical allowlist")
+        if adapter.get("raw_exchange_credentials") is not False or adapter.get("direct_exchange_write") is not False:
+            errors.append(f"{platform} adapter violates the raw exchange boundary")
     if adapters[0]["operations"] != adapters[1]["operations"]:
         errors.append("platform adapters do not normalize to the same operation map")
+    capabilities = load(base / "contracts/trader20-control-v1/capabilities.schema.json")
+    capability_ops = tuple(item["const"] for item in capabilities["allOf"][1]["properties"]["data"]["properties"]["operations"]["prefixItems"])
+    if capability_ops != OPERATIONS or tuple(adapters[0]["operations"]) != capability_ops:
+        errors.append("adapter operations differ from the capability endpoint contract")
 
     evals = load(skill / "evals/cases.json")["cases"]
     rejected = {case["category"] for case in evals if case.get("expected") == "reject"}

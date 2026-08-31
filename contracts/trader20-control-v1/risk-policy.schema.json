@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/risk-policy.schema.json",
+  "title": "trader20.control.v1 risk policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "policy_hash", "max_plan_ttl_ms", "market_stale_after_ms", "outer_max_slippage_bps", "execution_max_slippage_bps", "operator_execution_max_slippage_bps", "risk_per_trade_usdc", "campaign_risk_cap_usdc", "cluster_risk_cap_usdc", "daily_loss_cap_usdc", "kill_loss_cap_usdc", "max_open_positions", "max_initial_margin_per_trade_usdc", "max_gross_initial_margin_usdc", "max_leverage", "round_trip_cost_bps", "operator_request_enabled", "natural_signal_enabled"],
+  "properties": {
+    "schema": {"const": "trader20.control.risk-policy.v1"},
+    "policy_hash": {"$ref": "types.schema.json#/$defs/sha256", "$comment": "SHA-256 of canonical JSON for this object with policy_hash omitted"},
+    "max_plan_ttl_ms": {"type": "integer", "minimum": 1, "maximum": 300000},
+    "market_stale_after_ms": {"type": "integer", "minimum": 1, "maximum": 120000},
+    "outer_max_slippage_bps": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "execution_max_slippage_bps": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "operator_execution_max_slippage_bps": {"oneOf": [{"const": "5"}, {"const": 5}]},
+    "risk_per_trade_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "campaign_risk_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "cluster_risk_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "daily_loss_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "kill_loss_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "max_open_positions": {"type": "integer", "minimum": 1, "maximum": 100},
+    "max_initial_margin_per_trade_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "max_gross_initial_margin_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "max_leverage": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
+    "round_trip_cost_bps": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+    "operator_request_enabled": {"type": "boolean"},
+    "natural_signal_enabled": {"type": "boolean"}
+  }
+}

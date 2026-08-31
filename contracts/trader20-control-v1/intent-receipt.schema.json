@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/intent-receipt.schema.json",
+  "title": "Durable intent receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "protocol", "operation", "state", "intent_id", "plan_hash", "cloid", "replay"],
+  "properties": {
+    "ok": {"const": true},
+    "protocol": {"const": "trader20.control.v1"},
+    "operation": {"const": "execute_plan"},
+    "state": {"const": "PERSISTED"},
+    "intent_id": {"type": "string", "pattern": "^intent-[0-9a-f]{32}$"},
+    "plan_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "cloid": {"type": "string", "pattern": "^0x[0-9a-f]{32}$"},
+    "replay": {"type": "boolean"}
+  }
+}

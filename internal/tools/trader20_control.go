@@ -18,10 +18,10 @@ type Trader20ControlTool struct {
 	client    *trader20control.Client
 }
 
-var trader20ReadOnlyOperations = []string{"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health"}
+var trader20Operations = []string{"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health", "plan_trade", "execute_plan"}
 
 func Trader20ReadOnlyOperations() []string {
-	return append([]string(nil), trader20ReadOnlyOperations...)
+	return append([]string(nil), trader20Operations...)
 }
 
 func NewTrader20ControlToolsFromEnv() ([]Tool, error) {
@@ -43,8 +43,8 @@ func NewTrader20ControlToolsFromEnv() ([]Tool, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := make([]Tool, 0, len(trader20ReadOnlyOperations))
-	for _, op := range trader20ReadOnlyOperations {
+	out := make([]Tool, 0, len(trader20Operations))
+	for _, op := range trader20Operations {
 		out = append(out, &Trader20ControlTool{operation: op, client: client})
 	}
 	return out, nil
@@ -56,6 +56,9 @@ func NewTrader20ControlTool(operation string, client *trader20control.Client) *T
 
 func (t *Trader20ControlTool) Name() string { return "trader20_" + t.operation }
 func (t *Trader20ControlTool) Description() string {
+	if t.operation == "plan_trade" || t.operation == "execute_plan" {
+		return "Brokered trader20.control.v1 " + t.operation + " operation. Never signs locally or exposes a signer or raw exchange credential; exact candidate-bound authority is required."
+	}
 	return "Read-only trader20.control.v1 " + t.operation + " operation. Never signs, places, cancels, closes, transfers, or mutates a wallet."
 }
 func (t *Trader20ControlTool) Parameters() map[string]any {
@@ -65,6 +68,11 @@ func (t *Trader20ControlTool) Parameters() map[string]any {
 		properties["start_time"] = map[string]any{"type": "string", "description": "RFC3339 inclusive start; maximum range is 7 days"}
 		properties["end_time"] = map[string]any{"type": "string", "description": "RFC3339 exclusive end"}
 		required = []string{"start_time", "end_time"}
+	} else if t.operation == "plan_trade" || t.operation == "execute_plan" {
+		properties["request"] = map[string]any{
+			"type": "object", "description": "Exact request validated against the packaged trader20.control.v1 JSON Schema",
+		}
+		required = []string{"request"}
 	}
 	out := map[string]any{"type": "object", "properties": properties, "additionalProperties": false}
 	if len(required) > 0 {
@@ -101,6 +109,8 @@ func (t *Trader20ControlTool) Execute(ctx context.Context, args map[string]any) 
 		env, err = t.client.ExplainBlocker(ctx)
 	case "runtime_health":
 		env, err = t.client.RuntimeHealth(ctx)
+	case "plan_trade", "execute_plan":
+		return ErrorResult("trader20 bounded control transport is not configured; no effect was attempted")
 	default:
 		return ErrorResult("unsupported trader20 operation")
 	}

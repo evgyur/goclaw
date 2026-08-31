@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/types.schema.json",
+  "title": "trader20.control.v1 common types",
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "identifier": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,191}$"},
+    "positiveDecimal": {"oneOf": [{"type": "string", "pattern": "^(?:0*[1-9][0-9]*)(?:\\.[0-9]+)?$|^0*\\.[0-9]*[1-9][0-9]*$"}, {"type": "number", "exclusiveMinimum": 0}]},
+    "nonnegativeDecimal": {"oneOf": [{"type": "string", "pattern": "^(?:0|[0-9]+(?:\\.[0-9]+)?)$"}, {"type": "number", "minimum": 0}]},
+    "instrumentIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["symbol", "asset_id", "dex", "is_hip3"],
+      "properties": {
+        "symbol": {"type": "string", "minLength": 1},
+        "asset_id": {"type": "integer", "minimum": 0},
+        "dex": {"type": "string", "minLength": 1},
+        "is_hip3": {"type": "boolean"}
+      }
+    }
+  }
+}

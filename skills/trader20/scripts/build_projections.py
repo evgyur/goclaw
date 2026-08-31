@@ -10,15 +10,29 @@ import shutil
 from pathlib import Path
 
 PLATFORMS = ("goclaw", "hermes")
+CONTRACT_NAMES = (
+    "capabilities.schema.json",
+    "execute-plan-request.schema.json",
+    "intent-receipt.schema.json",
+    "operator-authority-envelope.schema.json",
+    "operator-request-receipt.schema.json",
+    "plan-trade-request.schema.json",
+    "read-envelope.schema.json",
+    "risk-policy.schema.json",
+    "runtime-snapshot.schema.json",
+    "status.schema.json",
+    "types.schema.json",
+)
 CORE_FILES = (
     "skills/trader20/SKILL.md",
     "skills/trader20/references/control-protocol.md",
     "skills/trader20/references/risk-and-authority.md",
     "skills/trader20/references/operator-ux.md",
-    "contracts/trader20-control-v1/read-envelope.schema.json",
-    "contracts/trader20-control-v1/capabilities.schema.json",
-    "contracts/trader20-control-v1/status.schema.json",
-)
+    "skills/trader20/adapters/goclaw.json",
+    "skills/trader20/adapters/hermes.json",
+    "skills/trader20/evals/cases.json",
+    "skills/trader20/evals/compatibility-fixtures.json",
+) + tuple(f"contracts/trader20-control-v1/{name}" for name in CONTRACT_NAMES)
 
 
 def repo_root() -> Path:
@@ -50,7 +64,7 @@ def build(root: Path, output: Path, source_commit: str) -> dict[str, dict]:
         shutil.copy2(root / "skills/trader20/SKILL.md", target / "SKILL.md")
         for name in ("control-protocol.md", "risk-and-authority.md", "operator-ux.md"):
             shutil.copy2(root / "skills/trader20/references" / name, target / "references" / name)
-        for name in ("read-envelope.schema.json", "capabilities.schema.json", "status.schema.json"):
+        for name in CONTRACT_NAMES:
             shutil.copy2(root / "contracts/trader20-control-v1" / name, contract_target / name)
         shutil.copy2(root / "skills/trader20/adapters" / f"{platform}.json", target / "adapter.json")
         manifest = {

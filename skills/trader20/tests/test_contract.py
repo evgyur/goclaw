@@ -58,10 +58,10 @@ class Trader20SkillContractTest(unittest.TestCase):
         with unittest.mock.patch.object(Path, "read_text", autospec=True) as read_text:
             def replacement(path: Path, *args, **kwargs):
                 if path == SKILL / "SKILL.md":
-                    return original.replace("strictly read-only", "limited")
+                    return original.replace("no raw exchange credential", "limited")
                 return Path.open(path, encoding="utf-8").read()
             read_text.side_effect = replacement
-            self.assertTrue(any("strictly read-only" in error for error in validator.validate(ROOT)))
+            self.assertTrue(any("no raw exchange credential" in error for error in validator.validate(ROOT)))
 
 
 if __name__ == "__main__":

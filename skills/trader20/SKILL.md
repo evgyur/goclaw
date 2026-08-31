@@ -1,30 +1,41 @@
 ---
 name: trader20
-description: "Use when reading or explaining Trader20 status, positions, orders, history, capabilities, blockers, or runtime health. Uses only trader20.control.v1 read operations and fails closed on stale or unbound evidence."
-version: 1.0.0
+description: "Use for Trader20 status and bounded control-lane requests. Reads live evidence; plans or executes only through trader20.control.v1 with fresh candidate-bound operator receipts."
+version: 2.0.0
 metadata:
   protocol: trader20.control.v1
-  effect_scope: read_only
+  effect_scope: brokered_bounded_control
 ---
 
 # Trader20
 
-Use the platform adapter in `adapters/` to map these logical operations: `capabilities`, `status`, `positions`, `orders`, `history`, `explain_blocker`, and `runtime_health`.
+Use the platform adapter in `adapters/` for exactly: `capabilities`, `status`, `positions`, `orders`, `history`, `explain_blocker`, `runtime_health`, `plan_trade`, and `execute_plan`.
 
 ## Required workflow
 
-1. Call the matching read operation; do not infer live state from memory or prose.
-2. Preserve asset, token, candidate, policy, and protocol identifiers exactly. Never normalize or repair an identifier.
-3. Cite `captured_at` and `source_timestamp` when present. If `stale=true`, `degraded=true`, an identity binding is absent, or the tool fails, describe the result as unavailable/degraded rather than live.
+1. Call `capabilities` and the relevant fresh read operation. Never infer live state from memory or prose.
+2. Preserve asset, token, candidate, tree, policy, account-binding, authority, plan, intent, nonce, and protocol identifiers exactly. Never normalize or repair an identifier.
+3. Cite evidence time. If `stale=true`, `degraded=true`, an identity binding is absent, or the tool fails, describe the result as unavailable/degraded rather than live.
 4. Keep account identifiers private. Do not expose or conflate wallet, Hyperliquid master, Privy, Pear, leader, or agent-wallet identities.
-5. Report only fields in the tool envelope. Never invent an execution, order, fill, protection, signer, or delivery receipt.
+5. Report only tool-envelope fields. Never invent an execution, order, fill, protection, authority, signature, or delivery receipt.
+
+## Bounded operator-request workflow
+
+`plan_trade` and `execute_plan` are separate brokered operations, not direct exchange tools.
+
+1. Use only lane `OPERATOR_REQUEST`; never convert model prose, a plan approval, or a natural signal into effect authority.
+2. Require a fresh authenticated `PLAN` receipt before `plan_trade`. It must bind the exact request, candidate commit/tree, account fingerprint, policy hash, principal, client, origin, owner-sender hash, authority envelope, nonce, expiry, maximum intent count, maximum gross notional, and 5 bps execution cap.
+3. Present the deterministic plan without claiming execution.
+4. Require a different fresh authenticated `EXECUTE` receipt bound to the exact plan before `execute_plan`.
+5. Treat receipt/authority expiry, replay, hash drift, limit exhaustion, KILL/pause, stale market/source, pending effects, unavailable protection, writer drift, and provider ambiguity as fail-closed blockers.
+6. A persisted or acknowledged intent is not a trade. Claim execution only from provider order/fill/position/protection/ledger evidence with no unexplained residual effects.
 
 ## Hard boundary
 
-This skill is strictly read-only. It cannot sign, plan, place, modify, cancel, or close trades; manage wallets; transfer or withdraw funds; or claim that any such effect occurred. Reject direct effect requests and explain that Release A exposes no execution operation. The presence of an open-order read operation does not create order-write authority.
+This skill has no raw exchange credential, signer, wallet, shell, skill-publication, transfer, withdrawal, or direct exchange-write tool. Money effects may leave only through the incumbent Trader20 writer after the control service validates exact authority and risk gates. Never call broad shell or raw provider APIs as a substitute.
 
-All Hyperliquid and HIP-3 instruments remain visible exactly as returned by canonical provider discovery; never silently narrow support. See `references/control-protocol.md`, `references/risk-and-authority.md`, and `references/operator-ux.md`.
+All Hyperliquid and HIP-3 instruments remain visible exactly as canonical discovery returns them. See `references/control-protocol.md`, `references/risk-and-authority.md`, and `references/operator-ux.md`.
 
 ## Output contract
 
-Return a concise answer containing operation, evidence time, freshness/degraded state, candidate/policy identities when available, source-backed data, and any blocker reason. Unsupported or effectful claims must be explicitly rejected.
+Return operation, evidence time, freshness/degraded state, exact non-private candidate/policy/authority/plan/intent bindings when supplied, state transition, and blocker. Separate planned, persisted, acknowledged, provider-executed, and terminally reconciled states.
