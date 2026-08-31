@@ -1,7 +1,7 @@
 ---
 name: trader20
 description: "Use for Trader20 reads and bounded control requests."
-version: 2.0.0
+version: 2.0.1
 metadata:
   protocol: trader20.control.v1
   effect_scope: brokered_bounded_control
