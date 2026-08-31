@@ -162,8 +162,9 @@ def verify() -> dict:
     if (
         "RUN rm -rf /app/bundled-skills/trader20" not in dockerfile
         or "/src/deploy/haraldr-goclaw/trader20-projection/" not in dockerfile
+        or "chmod -R u=rwX,go=rX /app/bundled-skills/trader20" not in dockerfile
     ):
-        errors.append("deployment image does not replace canonical Trader20 source with the generated projection")
+        errors.append("deployment image does not install a service-readable generated Trader20 projection")
     if "--enable-telegram" not in (HERE / "provision.py").read_text():
         errors.append("A06 package has no explicit Telegram cutover command")
     if "enable_trader20_tools" not in (HERE / "provision.py").read_text():

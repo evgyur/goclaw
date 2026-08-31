@@ -123,6 +123,8 @@ COPY --from=builder /src/skills/ /app/bundled-skills/
 # canonical source package (which carries build/test scripts and Python deps).
 RUN rm -rf /app/bundled-skills/trader20
 COPY --from=builder /src/deploy/haraldr-goclaw/trader20-projection/ /app/bundled-skills/trader20/
+RUN chown -R goclaw:goclaw /app/bundled-skills/trader20 \
+    && chmod -R u=rwX,go=rX /app/bundled-skills/trader20
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 
 # Fix Windows git clone issues:
