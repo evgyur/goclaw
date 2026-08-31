@@ -68,6 +68,7 @@ def verify() -> dict:
     policy = json.loads((HERE / "broker-policy.json").read_text())
     config = json.loads((HERE / "config.json5").read_text())
     compose = (HERE / "compose.yaml").read_text()
+    dockerfile = (HERE / "Dockerfile").read_text()
     provisioned = load_provision_module().payloads()
 
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -93,6 +94,12 @@ def verify() -> dict:
         errors.append("A02 core hash mismatch")
     if built_projection_hash != provenance["a02"]["goclaw_projection_hash"]:
         errors.append("A02 GoClaw projection hash mismatch")
+    packaged_projection = HERE / "trader20-projection"
+    if tree_hash(packaged_projection) != built_projection_hash:
+        errors.append("packaged Trader20 projection differs from deterministic build")
+    packaged_manifest = json.loads((packaged_projection / "projection-manifest.json").read_text())
+    if packaged_manifest.get("source_commit") != EXPECTED_COMMIT or packaged_manifest.get("core_hash") != core_hash:
+        errors.append("packaged Trader20 projection identity mismatch")
     if tree_hash(ROOT / "contracts/trader20-control-v1") != provenance["a02"]["contract_hash"]:
         errors.append("A02 contract hash mismatch")
 
@@ -150,6 +157,13 @@ def verify() -> dict:
         errors.append("A06 release package authorizes money effects")
     if "GOCLAW_TELEGRAM_TOKEN" in compose:
         errors.append("Telegram token must be installed through encrypted channel credentials, not container environment")
+    if "deploy/haraldr-goclaw/Dockerfile" not in compose:
+        errors.append("compose does not use the projection-pinned deployment Dockerfile")
+    if (
+        "RUN rm -rf /app/bundled-skills/trader20" not in dockerfile
+        or "/src/deploy/haraldr-goclaw/trader20-projection/" not in dockerfile
+    ):
+        errors.append("deployment image does not replace canonical Trader20 source with the generated projection")
     if "--enable-telegram" not in (HERE / "provision.py").read_text():
         errors.append("A06 package has no explicit Telegram cutover command")
     if "enable_trader20_tools" not in (HERE / "provision.py").read_text():

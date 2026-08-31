@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/status.schema.json",
+  "title": "trader20.control.v1 status envelope",
+  "allOf": [
+    {"$ref": "read-envelope.schema.json"},
+    {
+      "properties": {
+        "operation": {"const": "status"},
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["margin_summary", "cross_margin_summary", "withdrawable"],
+          "properties": {
+            "margin_summary": {},
+            "cross_margin_summary": {},
+            "withdrawable": {}
+          }
+        }
+      }
+    }
+  ]
+}

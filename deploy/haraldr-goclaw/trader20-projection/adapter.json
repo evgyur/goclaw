@@ -1,0 +1,22 @@
+{
+  "schema": "trader20.skill-adapter.v2",
+  "platform": "goclaw",
+  "protocol": "trader20.control.v1",
+  "transport": "builtin_tool",
+  "operations": {
+    "capabilities": "trader20_capabilities",
+    "status": "trader20_status",
+    "positions": "trader20_positions",
+    "orders": "trader20_orders",
+    "history": "trader20_history",
+    "explain_blocker": "trader20_explain_blocker",
+    "runtime_health": "trader20_runtime_health",
+    "plan_trade": "trader20_plan_trade",
+    "execute_plan": "trader20_execute_plan"
+  },
+  "read_output": "contracts/trader20-control-v1/read-envelope.schema.json",
+  "plan_input": "contracts/trader20-control-v1/plan-trade-request.schema.json",
+  "execute_input": "contracts/trader20-control-v1/execute-plan-request.schema.json",
+  "raw_exchange_credentials": false,
+  "direct_exchange_write": false
+}
