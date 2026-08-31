@@ -1,6 +1,6 @@
 ---
 name: trader20
-description: "Use for Trader20 status and bounded control-lane requests. Reads live evidence; plans or executes only through trader20.control.v1 with fresh candidate-bound operator receipts."
+description: "Use for Trader20 reads and bounded control requests."
 version: 2.0.0
 metadata:
   protocol: trader20.control.v1
