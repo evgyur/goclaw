@@ -18,7 +18,7 @@
     "cluster_risk_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
     "daily_loss_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
     "kill_loss_cap_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
-    "max_open_positions": {"type": "integer", "minimum": 1, "maximum": 100},
+    "max_open_positions": {"type": "integer", "minimum": 1, "maximum": 20},
     "max_initial_margin_per_trade_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
     "max_gross_initial_margin_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
     "max_leverage": {"$ref": "types.schema.json#/$defs/positiveDecimal"},

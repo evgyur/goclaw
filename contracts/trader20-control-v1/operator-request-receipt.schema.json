@@ -4,7 +4,7 @@
   "title": "Fresh candidate-bound authenticated operator request receipt",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "receipt_hash", "purpose", "binding_hash", "authority_hash", "account_fingerprint", "principal", "client_id", "request_origin", "owner_sender_id_hash", "authority_nonce", "authority_expires_at_ms", "candidate_commit", "candidate_tree", "policy_hash", "nonce", "expires_at_ms", "max_execution_intents", "max_gross_notional_usdc", "execution_max_slippage_bps", "authenticated_human", "signature_algorithm", "signing_key_id", "signature"],
+  "required": ["schema", "receipt_hash", "purpose", "binding_hash", "authority_hash", "account_fingerprint", "principal", "client_id", "request_origin", "owner_sender_id_hash", "authority_nonce", "authority_expires_at_ms", "candidate_commit", "candidate_tree", "policy_hash", "nonce", "issued_at_ms", "expires_at_ms", "max_execution_intents", "max_gross_notional_usdc", "execution_max_slippage_bps", "authenticated_human", "signature_algorithm", "signing_key_id", "signature"],
   "properties": {
     "schema": {"const": "trader20.control.operator-request-receipt.v1"},
     "receipt_hash": {"$ref": "types.schema.json#/$defs/sha256"},
@@ -22,6 +22,7 @@
     "candidate_tree": {"$ref": "types.schema.json#/$defs/commit"},
     "policy_hash": {"$ref": "types.schema.json#/$defs/sha256"},
     "nonce": {"$ref": "types.schema.json#/$defs/identifier"},
+    "issued_at_ms": {"type": "integer", "minimum": 0},
     "expires_at_ms": {"type": "integer", "minimum": 1},
     "max_execution_intents": {"type": "integer", "minimum": 1, "maximum": 1000},
     "max_gross_notional_usdc": {"$ref": "types.schema.json#/$defs/positiveDecimal"},
