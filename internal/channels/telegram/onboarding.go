@@ -17,13 +17,13 @@ const (
 	onboardingActionSources  = "sources"
 )
 
-const onboardingWelcome = `Привет! Я помогу найти опыт владельцев LiXiang в архиве Telegram-сообществ: обсуждения зарядки, обновлений, обслуживания и неисправностей.
+const onboardingWelcome = `👋 Привет! Я помогу найти опыт владельцев LiXiang в архиве Telegram-сообществ: обсуждения зарядки, обновлений, обслуживания и неисправностей.
 
-Соберу ответ по найденным сообщениям и приложу ссылки. Если данных не хватит — скажу прямо. Опыт из чатов не заменяет диагностику.
+🔎 Соберу ответ по найденным сообщениям и приложу ссылки. Если данных не хватит — скажу прямо. Опыт из чатов не заменяет диагностику.
 
-Напишите вопрос своими словами. Для точности добавьте модель, год и версию ПО, если знаете.
+🚗 Напишите вопрос своими словами. Для точности добавьте модель, год и версию ПО, если знаете.
 
-Например: «L7, 2024: зимой медленно заряжается — что обсуждали владельцы?»`
+💡 Например: «L7, 2024: зимой медленно заряжается — что обсуждали владельцы?»`
 
 func OnboardingMenuCommands() []telego.BotCommand {
 	return []telego.BotCommand{
@@ -37,11 +37,11 @@ func onboardingText(action string) (string, bool) {
 	case onboardingActionHome:
 		return onboardingWelcome, true
 	case onboardingActionAsk:
-		return "Напишите, что хотите узнать. Если вопрос о вашей машине, добавьте модель, год и версию ПО — если знаете.", true
+		return "✍️ Напишите, что хотите узнать. Если вопрос о вашей машине, добавьте модель, год и версию ПО — если знаете.", true
 	case onboardingActionExamples:
-		return "Примеры вопросов:\n\n• L7, 2024: зимой медленно заряжается — что обсуждали владельцы?\n• Что изменилось после обновления 8.1 и какие проблемы отмечали?\n• Какой опыт обслуживания кондиционера у владельцев LiXiang?", true
+		return "💡 Примеры вопросов:\n\n• L7, 2024: зимой медленно заряжается — что обсуждали владельцы?\n• Что изменилось после обновления 8.1 и какие проблемы отмечали?\n• Какой опыт обслуживания кондиционера у владельцев LiXiang?", true
 	case onboardingActionSources:
-		return "Я ищу только в подключённом архиве Telegram-сообществ LiXiang, кратко пересказываю найденное и даю ссылки на исходные сообщения. Некоторые ссылки открываются только участникам соответствующей группы. Если подтверждений нет, я сообщу об этом прямо.", true
+		return "🔎 Я ищу только в подключённом архиве Telegram-сообществ LiXiang, кратко пересказываю найденное и даю ссылки на исходные сообщения. Некоторые ссылки открываются только участникам соответствующей группы. Если подтверждений нет, я сообщу об этом прямо.", true
 	default:
 		return "", false
 	}
@@ -50,15 +50,15 @@ func onboardingText(action string) (string, bool) {
 func onboardingKeyboard(action string) *telego.InlineKeyboardMarkup {
 	if action == onboardingActionHome {
 		return &telego.InlineKeyboardMarkup{InlineKeyboard: [][]telego.InlineKeyboardButton{
-			{{Text: "Задать вопрос", CallbackData: onboardingCallbackPrefix + onboardingActionAsk}},
+			{{Text: "✍️ Задать вопрос", CallbackData: onboardingCallbackPrefix + onboardingActionAsk}},
 			{
-				{Text: "Примеры вопросов", CallbackData: onboardingCallbackPrefix + onboardingActionExamples},
-				{Text: "Об источниках", CallbackData: onboardingCallbackPrefix + onboardingActionSources},
+				{Text: "💡 Примеры", CallbackData: onboardingCallbackPrefix + onboardingActionExamples},
+				{Text: "🔗 Об источниках", CallbackData: onboardingCallbackPrefix + onboardingActionSources},
 			},
 		}}
 	}
 	return &telego.InlineKeyboardMarkup{InlineKeyboard: [][]telego.InlineKeyboardButton{
-		{{Text: "Назад", CallbackData: onboardingCallbackPrefix + onboardingActionHome}},
+		{{Text: "↩️ Назад", CallbackData: onboardingCallbackPrefix + onboardingActionHome}},
 	}}
 }
 

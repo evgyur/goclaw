@@ -30,6 +30,12 @@ func TestOnboardingTextAndButtons(t *testing.T) {
 		t.Fatal("unknown onboarding action accepted")
 	}
 	home := onboardingKeyboard(onboardingActionHome)
+	if !strings.HasPrefix(onboardingWelcome, "👋") || !strings.Contains(onboardingWelcome, "🔎") || !strings.Contains(onboardingWelcome, "🚗") || !strings.Contains(onboardingWelcome, "💡") {
+		t.Fatal("welcome emoji hierarchy missing")
+	}
+	if home.InlineKeyboard[0][0].Text != "✍️ Задать вопрос" || home.InlineKeyboard[1][0].Text != "💡 Примеры" || home.InlineKeyboard[1][1].Text != "🔗 Об источниках" {
+		t.Fatalf("unexpected onboarding button copy: %#v", home.InlineKeyboard)
+	}
 	if got := home.InlineKeyboard[0][0].CallbackData; got != onboardingCallbackPrefix+onboardingActionAsk {
 		t.Fatalf("ask callback = %q", got)
 	}
