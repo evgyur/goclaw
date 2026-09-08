@@ -23,24 +23,25 @@ type telegramCreds struct {
 
 // telegramInstanceConfig maps the non-secret config JSONB from the channel_instances table.
 type telegramInstanceConfig struct {
-	APIServer       string   `json:"api_server,omitempty"`
-	Proxy           string   `json:"proxy,omitempty"`
-	DMPolicy        string   `json:"dm_policy,omitempty"`
-	GroupPolicy     string   `json:"group_policy,omitempty"`
-	RequireMention  *bool    `json:"require_mention,omitempty"`
-	MentionMode     string   `json:"mention_mode,omitempty"`
-	HistoryLimit    int      `json:"history_limit,omitempty"`
-	DMStream        *bool    `json:"dm_stream,omitempty"`
-	GroupStream     *bool    `json:"group_stream,omitempty"`
-	DraftTransport  *bool    `json:"draft_transport,omitempty"`  // sendMessageDraft for DM streaming (default true)
-	ReasoningStream *bool    `json:"reasoning_stream,omitempty"` // show reasoning as separate message (default true)
-	ReactionLevel   string   `json:"reaction_level,omitempty"`
-	MediaMaxMB      int64    `json:"media_max_mb,omitempty"`
-	MediaMaxBytes   int64    `json:"media_max_bytes,omitempty"` // deprecated: use media_max_mb
-	LinkPreview     *bool    `json:"link_preview,omitempty"`
-	BlockReply      *bool    `json:"block_reply,omitempty"`
-	ForceIPv4       bool     `json:"force_ipv4,omitempty"`
-	AllowFrom       []string `json:"allow_from,omitempty"`
+	APIServer         string   `json:"api_server,omitempty"`
+	Proxy             string   `json:"proxy,omitempty"`
+	DMPolicy          string   `json:"dm_policy,omitempty"`
+	GroupPolicy       string   `json:"group_policy,omitempty"`
+	RequireMention    *bool    `json:"require_mention,omitempty"`
+	MentionMode       string   `json:"mention_mode,omitempty"`
+	HistoryLimit      int      `json:"history_limit,omitempty"`
+	DMStream          *bool    `json:"dm_stream,omitempty"`
+	GroupStream       *bool    `json:"group_stream,omitempty"`
+	DraftTransport    *bool    `json:"draft_transport,omitempty"`  // sendMessageDraft for DM streaming (default true)
+	ReasoningStream   *bool    `json:"reasoning_stream,omitempty"` // show reasoning as separate message (default true)
+	ReactionLevel     string   `json:"reaction_level,omitempty"`
+	MediaMaxMB        int64    `json:"media_max_mb,omitempty"`
+	MediaMaxBytes     int64    `json:"media_max_bytes,omitempty"` // deprecated: use media_max_mb
+	LinkPreview       *bool    `json:"link_preview,omitempty"`
+	BlockReply        *bool    `json:"block_reply,omitempty"`
+	ForceIPv4         bool     `json:"force_ipv4,omitempty"`
+	OnboardingEnabled bool     `json:"onboarding_enabled,omitempty"`
+	AllowFrom         []string `json:"allow_from,omitempty"`
 
 	STTProxyURL       string `json:"stt_proxy_url,omitempty"`
 	STTProvider       string `json:"stt_provider,omitempty"`
@@ -120,25 +121,26 @@ func buildChannel(name string, creds json.RawMessage, cfg json.RawMessage,
 	}
 
 	tgCfg := config.TelegramConfig{
-		Enabled:         true,
-		Token:           c.Token,
-		Proxy:           proxy,
-		APIServer:       apiServer,
-		AllowFrom:       ic.AllowFrom,
-		DMPolicy:        ic.DMPolicy,
-		GroupPolicy:     ic.GroupPolicy,
-		RequireMention:  ic.RequireMention,
-		MentionMode:     ic.MentionMode,
-		HistoryLimit:    ic.HistoryLimit,
-		DMStream:        ic.DMStream,
-		GroupStream:     ic.GroupStream,
-		DraftTransport:  ic.DraftTransport,
-		ReasoningStream: ic.ReasoningStream,
-		ReactionLevel:   ic.ReactionLevel,
-		MediaMaxBytes:   resolveMediaMaxBytes(ic),
-		LinkPreview:     ic.LinkPreview,
-		BlockReply:      ic.BlockReply,
-		ForceIPv4:       ic.ForceIPv4,
+		Enabled:           true,
+		Token:             c.Token,
+		Proxy:             proxy,
+		APIServer:         apiServer,
+		AllowFrom:         ic.AllowFrom,
+		DMPolicy:          ic.DMPolicy,
+		GroupPolicy:       ic.GroupPolicy,
+		RequireMention:    ic.RequireMention,
+		MentionMode:       ic.MentionMode,
+		HistoryLimit:      ic.HistoryLimit,
+		DMStream:          ic.DMStream,
+		GroupStream:       ic.GroupStream,
+		DraftTransport:    ic.DraftTransport,
+		ReasoningStream:   ic.ReasoningStream,
+		ReactionLevel:     ic.ReactionLevel,
+		MediaMaxBytes:     resolveMediaMaxBytes(ic),
+		LinkPreview:       ic.LinkPreview,
+		BlockReply:        ic.BlockReply,
+		ForceIPv4:         ic.ForceIPv4,
+		OnboardingEnabled: ic.OnboardingEnabled,
 
 		STTProxyURL:       sttProxyURL,
 		STTProvider:       sttProvider,

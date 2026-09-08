@@ -74,10 +74,18 @@ func (c *Channel) handleBotCommand(ctx context.Context, message *telego.Message,
 
 	switch cmd {
 	case "/start":
-		// Don't intercept /start — let it pass through to agent loop.
+		if c.config.OnboardingEnabled {
+			c.sendOnboarding(ctx, chatID, onboardingActionHome, setThread)
+			return true
+		}
+		// Default behavior remains agent-driven for channels without onboarding.
 		return false
 
 	case "/help":
+		if c.config.OnboardingEnabled {
+			c.sendOnboarding(ctx, chatID, onboardingActionHome, setThread)
+			return true
+		}
 		helpText := "Available commands:\n" +
 			"/start — Start chatting with the bot\n" +
 			"/help — Show this help message\n" +
