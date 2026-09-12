@@ -21,7 +21,7 @@ type Trader20ControlTool struct {
 
 var trader20Operations = []string{"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health", "pause_entries", "resume_entries", "latch_kill", "cancel_pending_plan", "plan_trade", "execute_plan"}
 
-func Trader20ReadOnlyOperations() []string {
+func Trader20Operations() []string {
 	return append([]string(nil), trader20Operations...)
 }
 
@@ -90,7 +90,7 @@ func (t *Trader20ControlTool) Parameters() map[string]any {
 }
 func (t *Trader20ControlTool) Execute(ctx context.Context, args map[string]any) *Result {
 	if t.client == nil {
-		return ErrorResult("trader20 read-only provider is not configured")
+		return ErrorResult("trader20 control provider is not configured")
 	}
 	var env trader20control.Envelope
 	var err error

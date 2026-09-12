@@ -7,7 +7,7 @@ import (
 )
 
 func TestTrader20ToolsRemainVisibleAndFailClosedWhenUnconfigured(t *testing.T) {
-	for _, operation := range Trader20ReadOnlyOperations() {
+	for _, operation := range Trader20Operations() {
 		tool := NewTrader20ControlTool(operation, nil)
 		if tool.Name() != "trader20_"+operation {
 			t.Fatalf("name = %q", tool.Name())

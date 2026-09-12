@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/rollout-authorization.schema.json",
+  "title": "Candidate-bound rollout authorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "receipt_hash", "account_fingerprint", "candidate_commit", "candidate_tree", "policy_hash", "enabled", "nonce", "expires_at_ms", "authenticated_human"],
+  "properties": {
+    "schema": {"const": "trader20.control.rollout-authorization.v1"},
+    "receipt_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "account_fingerprint": {"$ref": "types.schema.json#/$defs/sha256"},
+    "candidate_commit": {"$ref": "types.schema.json#/$defs/commit"},
+    "candidate_tree": {"$ref": "types.schema.json#/$defs/commit"},
+    "policy_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "enabled": {"type": "boolean"},
+    "nonce": {"$ref": "types.schema.json#/$defs/identifier"},
+    "expires_at_ms": {"type": "integer", "minimum": 1},
+    "authenticated_human": {"const": true}
+  }
+}

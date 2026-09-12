@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/resume-authorization.schema.json",
+  "title": "Authenticated resume authorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "receipt_hash", "account_fingerprint", "principal", "client_id", "action", "nonce", "expires_at_ms", "authenticated_human"],
+  "properties": {
+    "schema": {"const": "trader20.control.resume-authorization.v1"},
+    "receipt_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "account_fingerprint": {"$ref": "types.schema.json#/$defs/sha256"},
+    "principal": {"$ref": "types.schema.json#/$defs/identifier"},
+    "client_id": {"$ref": "types.schema.json#/$defs/identifier"},
+    "action": {"const": "resume_entries"},
+    "nonce": {"$ref": "types.schema.json#/$defs/identifier"},
+    "expires_at_ms": {"type": "integer", "minimum": 1},
+    "authenticated_human": {"const": true}
+  }
+}

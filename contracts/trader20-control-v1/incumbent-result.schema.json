@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/incumbent-result.schema.json",
+  "title": "Incumbent result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "provider_reference_hash", "detail"],
+  "properties": {
+    "status": {"enum": ["ACKNOWLEDGED", "TERMINAL_SUCCESS", "TERMINAL_FAILURE", "UNKNOWN_RECONCILING"]},
+    "provider_reference_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "detail": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["position_notional_usdc", "terminal_flat", "protection_state", "protected_notional_usdc", "protection_receipt_hash"],
+          "properties": {
+            "position_notional_usdc": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+            "terminal_flat": {"type": "boolean"},
+            "protection_state": {"enum": ["ACTIVE", "NOT_REQUIRED_FLAT"]},
+            "protected_notional_usdc": {"$ref": "types.schema.json#/$defs/nonnegativeDecimal"},
+            "protection_receipt_hash": {"$ref": "types.schema.json#/$defs/sha256"}
+          }
+        }
+      ]
+    }
+  }
+}

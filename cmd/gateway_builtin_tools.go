@@ -27,7 +27,7 @@ func builtinToolSeedData() []store.BuiltinToolDef {
 		},
 		{Name: "wait", DisplayName: "Wait", Description: "Pause the current agent tool sequence for a bounded number of milliseconds", Category: "runtime", Enabled: true},
 
-		// trader20.control.v1 — provider-read-only; explicitly granted per agent.
+		// trader20.control.v1 — local broker; disabled by default and explicitly granted per agent.
 		{Name: "trader20_capabilities", DisplayName: "Trader20 Capabilities", Description: "Read the fail-closed Trader20 capability contract", Category: "trader20", Enabled: false},
 		{Name: "trader20_status", DisplayName: "Trader20 Status", Description: "Read normalized Hyperliquid account status", Category: "trader20", Enabled: false},
 		{Name: "trader20_positions", DisplayName: "Trader20 Positions", Description: "Read current Hyperliquid positions", Category: "trader20", Enabled: false},

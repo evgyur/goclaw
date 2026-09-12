@@ -22,7 +22,7 @@ var trader20CommandRoutes = map[string]string{
 	"/markets": "markets", "/hip3": "markets", "/performance": "perf:24h",
 	"/perf": "perf:24h", "/report": "perf:24h", "/links": "links",
 	"/export": "export", "/alerts": "alerts",
-	"/pause": "pause", "/resume": "resume", "/kill": "kill", "/plan": "plan", "/execute": "execute",
+	"/pause": "pause", "/resume": "resume", "/kill": "kill", "/plan": "plan", "/execute": "execute", "/cancel": "cancel",
 }
 
 func trader20ModeEnabled() bool {
@@ -46,6 +46,7 @@ func trader20MenuCommands() []telego.BotCommand {
 		{Command: "kill", Description: "Latch fail-closed entry kill"},
 		{Command: "plan", Description: "Prepare an exact bounded trade plan"},
 		{Command: "execute", Description: "Execute an explicitly approved plan"},
+		{Command: "cancel", Description: "Cancel a pending exact plan"},
 	}
 }
 
@@ -58,12 +59,14 @@ func trader20Keyboard() *telego.InlineKeyboardMarkup {
 		{button("📬 Orders", "orders"), button("🧾 Fills", "fills")},
 		{button("🛡 Risk", "risk"), button("🛑 Blocks", "blocks")},
 		{button("⏱ Performance", "perf:24h"), button("🅷 Markets", "markets")},
+		{button("🧾 Plan trade", "plan"), button("✅ Execute plan", "execute")},
+		{button("✖ Cancel plan", "cancel"), button("⏸ Pause entries", "pause")},
 		{button("⚙️ Alerts", "alerts"), button("🧭 Menu", "menu")},
 	}}
 }
 
 func trader20MenuText() string {
-	return "🧭 trader20 management cockpit\n\nStatus is evidence-backed. Operational controls use the incumbent single writer; manual money actions remain fail-closed without exact candidate-bound authority."
+	return "🧭 trader20 management cockpit\n\nStatus is evidence-backed. Planning never trades. Execution requires a fresh exact plan hash and returns an authoritative receipt from the incumbent single writer."
 }
 
 func trader20RoutePrompt(route string, now time.Time) string {
@@ -92,6 +95,8 @@ func trader20RoutePrompt(route string, now time.Time) string {
 		return prefix + "Collect all exact plan fields and call trader20_plan_trade only when complete. Planning is not execution."
 	case "execute":
 		return prefix + "Execute only the exact plan hash explicitly approved in this message using trader20_execute_plan. Never infer approval from an earlier plan."
+	case "cancel":
+		return prefix + "Cancel only the exact pending plan hash named in this message using trader20_cancel_pending_plan. Ask for the hash if it is absent."
 	case "perf:1h", "perf:24h", "perf:7d", "perf:30d":
 		return prefix + "Call trader20_history with " + historyWindow + "; summarize only directly supported performance evidence. If the requested route exceeds seven days, state the contract limit rather than extrapolating."
 	default:

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trader20.local/contracts/trader20-control-v1/lifecycle-close-receipt.schema.json",
+  "title": "Authoritative terminal-flat lifecycle receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "receipt_hash", "action", "intent_id", "plan_hash", "account_fingerprint", "cloid", "instrument_key", "provider_effect_hash", "terminal_flat", "nonce", "captured_at_ms"],
+  "properties": {
+    "schema": {"const": "trader20.control.lifecycle-close-receipt.v1"},
+    "receipt_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "action": {"const": "release_open_reservation"},
+    "intent_id": {"$ref": "types.schema.json#/$defs/identifier"},
+    "plan_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "account_fingerprint": {"$ref": "types.schema.json#/$defs/sha256"},
+    "cloid": {"type": "string", "pattern": "^0x[0-9a-f]{32}$"},
+    "instrument_key": {"type": "string", "minLength": 1, "maxLength": 192},
+    "provider_effect_hash": {"$ref": "types.schema.json#/$defs/sha256"},
+    "terminal_flat": {"const": true},
+    "nonce": {"$ref": "types.schema.json#/$defs/identifier"},
+    "captured_at_ms": {"type": "integer", "minimum": 0}
+  }
+}

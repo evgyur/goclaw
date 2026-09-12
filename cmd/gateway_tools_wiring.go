@@ -41,13 +41,13 @@ func wireExtraTools(
 	toolsReg.Register(tools.NewDateTimeTool())
 	toolsReg.Register(tools.NewWaitTool())
 
-	// Trader20 control tools expose only Hyperliquid /info readback. Keep the
-	// definitions registered even when deployment identity is absent so grants
+	// Trader20 control tools use the narrow local broker. Keep the definitions
+	// registered even when deployment identity is absent so grants
 	// remain stable and calls fail closed instead of disappearing.
 	trader20Tools, trader20Err := tools.NewTrader20ControlToolsFromEnv()
 	if trader20Err != nil {
-		slog.Warn("trader20 read-only tools registered unconfigured", "error", trader20Err)
-		for _, operation := range tools.Trader20ReadOnlyOperations() {
+		slog.Warn("trader20 control tools registered unconfigured", "error", trader20Err)
+		for _, operation := range tools.Trader20Operations() {
 			trader20Tools = append(trader20Tools, tools.NewTrader20ControlTool(operation, nil))
 		}
 	}
