@@ -71,6 +71,16 @@ class BrokerTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             broker.operational("execute_plan", {}, "1")
 
+    def test_canonical_read_request_omits_control_only_actor_field(self):
+        self.assertEqual(
+            {"operation": "status", "params": {}},
+            broker.canonical_request("status", {}, None, read_only=True),
+        )
+        self.assertEqual(
+            {"operation": "plan_trade", "params": {"request": "exact"}, "actor_id": "617744661"},
+            broker.canonical_request("plan_trade", {"request": "exact"}, "617744661", read_only=False),
+        )
+
     def test_live_websocket_schema_exact_six_is_ready(self):
         broker.atomic_json(broker.WS, {
             "producer_heartbeat_ms": broker.now_ms(),

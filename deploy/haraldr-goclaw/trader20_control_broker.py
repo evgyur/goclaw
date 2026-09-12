@@ -104,12 +104,20 @@ def atomic_hold(held: bool, *, kill_latched: bool = False) -> None:
             pass
 
 
+def canonical_request(operation: str, params: dict, actor_id: str | None, *, read_only: bool) -> dict:
+    request = {"operation": operation, "params": params}
+    if not read_only:
+        request["actor_id"] = actor_id
+    return request
+
+
 def proxy_trader20(operation: str, params: dict, actor_id: str | None = None) -> dict:
-    target = READ_SOCKET if operation in READ_OPS and operation != "capabilities" else CONTROL_SOCKET
+    read_only = operation in READ_OPS and operation != "capabilities"
+    target = READ_SOCKET if read_only else CONTROL_SOCKET
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
         client.settimeout(60)
         client.connect(str(target))
-        client.sendall(json.dumps({"operation": operation, "params": params, "actor_id": actor_id}, allow_nan=False).encode() + b"\n")
+        client.sendall(json.dumps(canonical_request(operation, params, actor_id, read_only=read_only), allow_nan=False).encode() + b"\n")
         with client.makefile("rb") as stream:
             raw = stream.readline(MAX_RESPONSE + 1)
     if len(raw) > MAX_RESPONSE or not raw.endswith(b"\n"):
