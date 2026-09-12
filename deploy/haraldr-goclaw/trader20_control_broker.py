@@ -287,11 +287,7 @@ def operational(operation: str, params: dict, actor: object) -> dict:
                 atomic_hold(True, kill_latched=current_state["kill_latched"])
             except Exception:
                 rollback_ok = False
-                try:
-                    fail_closed_writer_timer()
-                except Exception as stop_error:
-                    raise EffectError("resume_hold_failed_outcome_unknown_timer_stop_unconfirmed", effect_attempted=True) from stop_error
-            reason = "resume_hold_failed_rollback_confirmed" if rollback_ok else "resume_hold_failed_outcome_unknown_writer_timer_stopped"
+            reason = "resume_hold_failed_rollback_confirmed" if rollback_ok else "resume_hold_failed_outcome_unknown_entry_hold_authoritative"
             raise EffectError(reason, effect_attempted=True) from exc
         return {"ok": True, "state": "ENTRIES_ENABLED", "effect": "entry_hold_released", "actor": principal, "evidence": evidence}
     if operation == "cancel_pending_plan":
@@ -299,14 +295,6 @@ def operational(operation: str, params: dict, actor: object) -> dict:
     if operation in {"plan_trade", "execute_plan"}:
         raise RuntimeError("operator_money_lane_requires_new_candidate_bound_authority")
     raise ValueError("unsupported_operation")
-
-
-def fail_closed_writer_timer() -> None:
-    import subprocess
-    subprocess.run(["/usr/bin/systemctl", "stop", "trader20-v3.timer"], check=True, timeout=10, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    status = subprocess.run(["/usr/bin/systemctl", "is-active", "trader20-v3.timer"], check=False, timeout=5, capture_output=True, text=True)
-    if status.stdout.strip() != "inactive":
-        raise RuntimeError("writer_timer_stop_unconfirmed")
 
 
 def make_envelope(operation: str, data: object, *, degraded: bool = False, reason: str = "") -> dict:

@@ -111,15 +111,14 @@ class BrokerTests(unittest.TestCase):
             result = broker.handle({"operation": "runtime_health", "params": {}, "actor_id": "617744661"})
         self.assertEqual("canonical_risk_blocker;leader_discovery_incomplete", result["reason"])
 
-    def test_timer_stop_failure_is_ambiguous_effect(self):
+    def test_resume_rollback_failure_is_ambiguous_effect(self):
         broker.operational("pause_entries", {"reason": "test"}, "617744661")
         with patch.object(broker, "atomic_hold", side_effect=OSError("hold")), \
-             patch.object(broker, "save_state", side_effect=[None, OSError("rollback")]), \
-             patch.object(broker, "fail_closed_writer_timer", side_effect=TimeoutError("stop")):
+             patch.object(broker, "save_state", side_effect=[None, OSError("rollback")]):
             with self.assertRaises(broker.EffectError) as caught:
                 broker.operational("resume_entries", {}, "617744661")
         self.assertTrue(caught.exception.effect_attempted)
-        self.assertIn("timer_stop_unconfirmed", str(caught.exception))
+        self.assertIn("entry_hold_authoritative", str(caught.exception))
 
 
 if __name__ == "__main__":

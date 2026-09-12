@@ -6,7 +6,7 @@ ConditionPathExists=/opt/haraldr-goclaw/current/deploy/haraldr-goclaw/trader20_c
 
 [Service]
 Type=simple
-User=root
+User=trader20
 Group=trader20
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=TRADER20_OPERATOR_USER_ID=617744661
@@ -21,8 +21,8 @@ CapabilityBoundingSet=
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadOnlyPaths=/opt/trader20-v3 /var/lib/trader20-v3/state /run/trader20-control-read
-ReadWritePaths=/var/lib/trader20-v3/state/haraldr-control /run/trader20-haraldr-control /run/trader20-control-read/control.sock
+ReadOnlyPaths=/opt/trader20-v3 /var/lib/trader20-v3/state
+ReadWritePaths=/var/lib/trader20-v3/state/haraldr-control /run/trader20-haraldr-control /run/trader20-control-read
 RestrictAddressFamilies=AF_UNIX
 SystemCallArchitectures=native
 UMask=0077
