@@ -167,6 +167,8 @@ def verify() -> dict:
         or "chmod -R u=rwX,go=rX /app/bundled-skills/trader20" not in dockerfile
     ):
         errors.append("deployment image does not install a service-readable generated Trader20 projection")
+    if "addgroup -g 985 trader20-control" not in dockerfile or "addgroup goclaw trader20-control" not in dockerfile:
+        errors.append("deployment image does not bind goclaw to the exact Trader20 control socket group")
     if "--enable-telegram" not in (HERE / "provision.py").read_text():
         errors.append("A06 package has no explicit Telegram cutover command")
     if "enable_trader20_tools" not in (HERE / "provision.py").read_text():
