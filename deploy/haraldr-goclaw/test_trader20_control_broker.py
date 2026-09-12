@@ -19,6 +19,8 @@ class BrokerTests(unittest.TestCase):
         broker.STATE_ROOT = root / "state"
         broker.CONTROL_STATE = broker.STATE_ROOT / "haraldr-control/state.json"
         broker.KILL_SENTINEL = broker.STATE_ROOT / "haraldr-control/kill-latched"
+        broker.RUNTIME_KILL_SENTINEL = root / "run/kill-attempted"
+        broker.kill_attempted = False
         broker.ACTIVATION = broker.STATE_ROOT / "activation/trader20-v3-active.json"
         broker.WS = broker.STATE_ROOT / "ws-shadow/signals_raw.json"
         broker.ROSTER = broker.STATE_ROOT / "leader-rotation/leader_roster_latest.json"
@@ -27,6 +29,7 @@ class BrokerTests(unittest.TestCase):
         broker.CURRENT = root / "current"
         release = root / ("release-" + "a" * 12)
         release.mkdir()
+        broker.atomic_json(release / "release.json", {"candidateSha": "a" * 40})
         broker.CURRENT.symlink_to(release)
         broker.atomic_json(broker.ACTIVATION, {"status": "ACTIVE", "candidate_sha": "a" * 40, "release": str(release)})
         broker.atomic_json(broker.WS, {"producer_heartbeat_ms": broker.now_ms(), "complete_leader_count": 6, "entries_halted": False})
@@ -84,6 +87,15 @@ class BrokerTests(unittest.TestCase):
     def test_kill_sentinel_survives_state_loss(self):
         broker.operational("latch_kill", {"reason": "owner_request"}, "617744661")
         broker.CONTROL_STATE.unlink()
+        self.assertTrue(broker.state()["kill_latched"])
+        with self.assertRaisesRegex(RuntimeError, "kill_latched"):
+            broker.operational("resume_entries", {}, "617744661")
+
+    def test_failed_first_kill_write_latches_process_and_blocks_resume(self):
+        with patch.object(broker, "atomic_json", side_effect=OSError("ENOSPC")):
+            with self.assertRaises(broker.EffectError) as caught:
+                broker.operational("latch_kill", {"reason": "owner_request"}, "617744661")
+        self.assertTrue(caught.exception.effect_attempted)
         self.assertTrue(broker.state()["kill_latched"])
         with self.assertRaisesRegex(RuntimeError, "kill_latched"):
             broker.operational("resume_entries", {}, "617744661")

@@ -111,7 +111,9 @@ RUN set -eux; \
     rm -f /tmp/requirements-base.txt /tmp/requirements-skills.txt
 
 # Non-root user
-RUN adduser -D -u 1000 -h /app goclaw
+RUN adduser -D -u 1000 -h /app goclaw \
+    && addgroup -g 985 trader20-control \
+    && addgroup goclaw trader20-control
 WORKDIR /app
 
 # Copy binary, migrations, and bundled skills

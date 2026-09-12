@@ -57,6 +57,7 @@ type Envelope struct {
 	CandidateSHA    string          `json:"candidate_sha,omitempty"`
 	PolicyHash      string          `json:"policy_hash,omitempty"`
 	Data            json.RawMessage `json:"data"`
+	EffectAttempted bool            `json:"effect_attempted,omitempty"`
 }
 
 // Client intentionally has no exchange/signing/order mutation method.

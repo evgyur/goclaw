@@ -29,8 +29,8 @@ class HaraldrGoClawReleaseTest(unittest.TestCase):
         self.assertTrue(receipt["ok"])
         self.assertTrue(receipt["telegram_enabled"])
         self.assertTrue(receipt["activation_authorized"])
-        self.assertEqual("B02-bounded-control-projections", receipt["phase"])
-        self.assertEqual(10, receipt["tool_allow_count"])
+        self.assertEqual("B03-haraldr-operational-control", receipt["phase"])
+        self.assertEqual(14, receipt["tool_allow_count"])
         self.assertEqual("full", json.loads((HERE / "config.json5").read_text())["tools"]["profile"])
 
     def test_provisioning_payload_is_predefined_disabled_and_read_only(self) -> None:

@@ -25,6 +25,7 @@ CURRENT = Path(os.environ.get("TRADER20_CURRENT", "/opt/trader20-v3/current"))
 HOLD_ENV = Path(os.environ.get("TRADER20_HARALDR_HOLD_ENV", "/var/lib/trader20-v3/state/haraldr-control/entry-hold.env"))
 CONTROL_STATE = STATE_ROOT / "haraldr-control" / "state.json"
 KILL_SENTINEL = STATE_ROOT / "haraldr-control" / "kill-latched"
+RUNTIME_KILL_SENTINEL = SOCKET.parent / "kill-attempted"
 ACTIVATION = STATE_ROOT / "activation" / "trader20-v3-active.json"
 WS = STATE_ROOT / "ws-shadow" / "signals_raw.json"
 ROSTER = STATE_ROOT / "leader-rotation" / "leader_roster_latest.json"
@@ -34,6 +35,7 @@ MAX_RESPONSE = 4 * 1024 * 1024
 READ_OPS = {"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health"}
 CONTROL_OPS = {"pause_entries", "resume_entries", "latch_kill", "cancel_pending_plan", "plan_trade", "execute_plan"}
 CANDIDATE = re.compile(r"^[0-9a-f]{40}$")
+kill_attempted = False
 
 
 class EffectError(RuntimeError):
@@ -136,11 +138,15 @@ def readiness() -> tuple[bool, list[str], dict]:
     candidate = str(activation.get("candidate_sha") or activation.get("candidate") or "")
     status = str(activation.get("status") or "")
     release = str(activation.get("release") or activation.get("release_path") or "")
+    release_meta = load_json(Path(current) / "release.json") if current else {}
+    release_candidate = str(release_meta.get("candidateSha") or "")
     if status != "ACTIVE":
         reasons.append("activation_not_active")
     if not CANDIDATE.fullmatch(candidate):
         reasons.append("activation_candidate_invalid")
-    if not current or not CANDIDATE.fullmatch(candidate) or not Path(current).name.endswith("-" + candidate[:12]):
+    if str(STATE_ROOT).startswith("/var/lib/trader20-v3") and (not current or not str(Path(current)).startswith("/opt/trader20-v3/releases/")):
+        reasons.append("current_release_path_invalid")
+    if not current or release_candidate != candidate:
         reasons.append("current_candidate_mismatch")
     if release and current != release:
         reasons.append("current_release_mismatch")
@@ -161,6 +167,7 @@ def readiness() -> tuple[bool, list[str], dict]:
         "candidate_sha": candidate,
         "current_release": current,
         "activation_release": release,
+        "release_candidate_sha": release_candidate,
         "websocket_complete_leaders": complete,
         "websocket_entries_halted": halted,
         "websocket_heartbeat_ms": heartbeat,
@@ -170,13 +177,14 @@ def readiness() -> tuple[bool, list[str], dict]:
 
 
 def state() -> dict:
+    global kill_attempted
     value = load_json(CONTROL_STATE)
     valid = (
         value.get("schema") == "trader20.haraldr-control-state.v1"
         and type(value.get("kill_latched")) is bool
         and type(value.get("entries_paused")) is bool
     )
-    sentinel = KILL_SENTINEL.exists()
+    sentinel = KILL_SENTINEL.exists() or RUNTIME_KILL_SENTINEL.exists() or kill_attempted
     return {
         "schema": "trader20.haraldr-control-state.v1",
         "state_valid": valid,
@@ -190,6 +198,7 @@ def state() -> dict:
 
 def save_state(value: dict) -> None:
     value = dict(value)
+    value.pop("state_valid", None)
     value["schema"] = "trader20.haraldr-control-state.v1"
     value["updated_at_ms"] = now_ms()
     atomic_json(CONTROL_STATE, value)
@@ -204,13 +213,17 @@ def authorized_actor(actor: object) -> str:
 
 
 def operational(operation: str, params: dict, actor: object) -> dict:
+    global kill_attempted
     principal = authorized_actor(actor)
     current_state = state()
     reason = str(params.get("reason") or "operator_request").strip()
     if not reason or len(reason) > 160:
         raise ValueError("reason_invalid")
     if operation == "pause_entries":
-        atomic_hold(True)
+        try:
+            atomic_hold(True)
+        except Exception as exc:
+            raise EffectError("pause_hold_persistence_failed", effect_attempted=True) from exc
         current_state.update(entries_paused=True, pause_reason=reason)
         try:
             save_state(current_state)
@@ -218,11 +231,20 @@ def operational(operation: str, params: dict, actor: object) -> dict:
             raise EffectError("pause_state_persistence_failed", effect_attempted=True) from exc
         return {"ok": True, "state": "ENTRIES_PAUSED", "effect": "entry_hold_enabled", "actor": principal}
     if operation == "latch_kill":
-        atomic_json(KILL_SENTINEL, {"schema": "trader20.haraldr-kill.v1", "actor": principal, "reason": reason, "latched_at_ms": now_ms()})
+        kill_attempted = True
+        marker = {"schema": "trader20.haraldr-kill.v1", "actor": principal, "reason": reason, "latched_at_ms": now_ms()}
+        try:
+            atomic_json(RUNTIME_KILL_SENTINEL, marker)
+        except Exception as exc:
+            raise EffectError("kill_runtime_latch_failed", effect_attempted=True) from exc
         try:
             atomic_hold(True)
         except Exception as exc:
             raise EffectError("kill_hold_persistence_failed", effect_attempted=True) from exc
+        try:
+            atomic_json(KILL_SENTINEL, marker)
+        except Exception as exc:
+            raise EffectError("kill_persistent_latch_failed", effect_attempted=True) from exc
         current_state.update(kill_latched=True, kill_reason=reason, entries_paused=True, pause_reason="kill_latched")
         try:
             save_state(current_state)
@@ -235,22 +257,35 @@ def operational(operation: str, params: dict, actor: object) -> dict:
         ready, reasons, evidence = readiness()
         if not ready:
             raise RuntimeError("resume_fail_closed:" + ",".join(reasons))
+        current_state.update(entries_paused=False, pause_reason=None)
         try:
-            atomic_hold(False)
-            current_state.update(entries_paused=False, pause_reason=None)
             save_state(current_state)
         except Exception as exc:
+            raise EffectError("resume_state_persistence_failed", effect_attempted=True) from exc
+        try:
+            atomic_hold(False)
+        except Exception as exc:
+            rollback_ok = True
             try:
+                current_state.update(entries_paused=True, pause_reason="resume_rollback")
+                save_state(current_state)
                 atomic_hold(True)
             except Exception:
-                pass
-            raise EffectError("resume_persistence_failed_entry_hold_restored", effect_attempted=True) from exc
+                rollback_ok = False
+                fail_closed_writer_timer()
+            reason = "resume_hold_failed_rollback_confirmed" if rollback_ok else "resume_hold_failed_outcome_unknown_writer_timer_stopped"
+            raise EffectError(reason, effect_attempted=True) from exc
         return {"ok": True, "state": "ENTRIES_ENABLED", "effect": "entry_hold_released", "actor": principal, "evidence": evidence}
     if operation == "cancel_pending_plan":
         raise RuntimeError("no_operator_plan_lane_provisioned")
     if operation in {"plan_trade", "execute_plan"}:
         raise RuntimeError("operator_money_lane_requires_new_candidate_bound_authority")
     raise ValueError("unsupported_operation")
+
+
+def fail_closed_writer_timer() -> None:
+    import subprocess
+    subprocess.run(["/usr/bin/systemctl", "stop", "trader20-v3.timer"], check=False, timeout=10, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def make_envelope(operation: str, data: object, *, degraded: bool = False, reason: str = "") -> dict:
@@ -316,7 +351,9 @@ def handle(value: dict) -> dict:
             result["data"] = data
             result["degraded"] = bool(result.get("degraded")) or not ready or (isinstance(prepared_count, int) and prepared_count < 20)
             if not ready:
-                result["reason"] = ",".join(reasons)
+                current_reason = str(result.get("reason") or "").strip()
+                management_reason = ",".join(reasons)
+                result["reason"] = ";".join(part for part in (current_reason, management_reason) if part)
             elif isinstance(prepared_count, int) and prepared_count < 20:
                 result["reason"] = "leader_discovery_incomplete"
         return result

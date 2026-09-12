@@ -12,6 +12,7 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=TRADER20_OPERATOR_USER_ID=617744661
 RuntimeDirectory=trader20-haraldr-control
 RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=restart
 ExecStart=/usr/bin/python3 -B /opt/haraldr-goclaw/current/deploy/haraldr-goclaw/trader20_control_broker.py
 Restart=on-failure
 RestartSec=5
