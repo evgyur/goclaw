@@ -169,6 +169,8 @@ def verify() -> dict:
         errors.append("deployment image does not install a service-readable generated Trader20 projection")
     if "addgroup -g 985 trader20-control" not in dockerfile or "addgroup goclaw trader20-control" not in dockerfile:
         errors.append("deployment image does not bind goclaw to the exact Trader20 control socket group")
+    if "netcat-openbsd" not in dockerfile:
+        errors.append("deployment image lacks the Unix-socket smoke client")
     if "ProtectHome=read-only" not in (HERE / "trader20-haraldr-control.service").read_text():
         errors.append("broker service cannot read the immutable release under /home")
     if "--enable-telegram" not in (HERE / "provision.py").read_text():
