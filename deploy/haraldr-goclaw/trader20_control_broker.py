@@ -79,9 +79,12 @@ def atomic_json(path: Path, value: dict, mode: int = 0o600) -> None:
             pass
 
 
-def atomic_hold(held: bool) -> None:
+def atomic_hold(held: bool, *, kill_latched: bool = False) -> None:
     HOLD_ENV.parent.mkdir(parents=True, exist_ok=True)
-    payload = f"TRADER20_V3_ENTRY_HOLD={'1' if held else '0'}\n"
+    payload = (
+        f"TRADER20_V3_ENTRY_HOLD={'1' if held else '0'}\n"
+        f"TRADER20_HARALDR_KILL_LATCHED={'1' if kill_latched else '0'}\n"
+    )
     fd, tmp = tempfile.mkstemp(prefix=HOLD_ENV.name + ".", dir=HOLD_ENV.parent)
     try:
         with os.fdopen(fd, "w") as stream:
@@ -176,6 +179,16 @@ def readiness() -> tuple[bool, list[str], dict]:
     }
 
 
+def hold_kill_latched() -> bool:
+    try:
+        lines = HOLD_ENV.read_text().splitlines()
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return True
+    return "TRADER20_HARALDR_KILL_LATCHED=1" in lines
+
+
 def state() -> dict:
     global kill_attempted
     value = load_json(CONTROL_STATE)
@@ -184,7 +197,7 @@ def state() -> dict:
         and type(value.get("kill_latched")) is bool
         and type(value.get("entries_paused")) is bool
     )
-    sentinel = KILL_SENTINEL.exists() or RUNTIME_KILL_SENTINEL.exists() or kill_attempted
+    sentinel = hold_kill_latched() or KILL_SENTINEL.exists() or RUNTIME_KILL_SENTINEL.exists() or kill_attempted
     return {
         "schema": "trader20.haraldr-control-state.v1",
         "state_valid": valid,
@@ -233,14 +246,16 @@ def operational(operation: str, params: dict, actor: object) -> dict:
     if operation == "latch_kill":
         kill_attempted = True
         marker = {"schema": "trader20.haraldr-kill.v1", "actor": principal, "reason": reason, "latched_at_ms": now_ms()}
+        # First durable write atomically combines the writer hold and kill marker.
+        # If committed, restart cannot reinterpret it as a resumable pause.
+        try:
+            atomic_hold(True, kill_latched=True)
+        except Exception as exc:
+            raise EffectError("kill_hold_persistence_failed", effect_attempted=True) from exc
         try:
             atomic_json(RUNTIME_KILL_SENTINEL, marker)
         except Exception as exc:
             raise EffectError("kill_runtime_latch_failed", effect_attempted=True) from exc
-        try:
-            atomic_hold(True)
-        except Exception as exc:
-            raise EffectError("kill_hold_persistence_failed", effect_attempted=True) from exc
         try:
             atomic_json(KILL_SENTINEL, marker)
         except Exception as exc:
@@ -263,16 +278,19 @@ def operational(operation: str, params: dict, actor: object) -> dict:
         except Exception as exc:
             raise EffectError("resume_state_persistence_failed", effect_attempted=True) from exc
         try:
-            atomic_hold(False)
+            atomic_hold(False, kill_latched=False)
         except Exception as exc:
             rollback_ok = True
             try:
                 current_state.update(entries_paused=True, pause_reason="resume_rollback")
                 save_state(current_state)
-                atomic_hold(True)
+                atomic_hold(True, kill_latched=current_state["kill_latched"])
             except Exception:
                 rollback_ok = False
-                fail_closed_writer_timer()
+                try:
+                    fail_closed_writer_timer()
+                except Exception as stop_error:
+                    raise EffectError("resume_hold_failed_outcome_unknown_timer_stop_unconfirmed", effect_attempted=True) from stop_error
             reason = "resume_hold_failed_rollback_confirmed" if rollback_ok else "resume_hold_failed_outcome_unknown_writer_timer_stopped"
             raise EffectError(reason, effect_attempted=True) from exc
         return {"ok": True, "state": "ENTRIES_ENABLED", "effect": "entry_hold_released", "actor": principal, "evidence": evidence}
@@ -285,7 +303,10 @@ def operational(operation: str, params: dict, actor: object) -> dict:
 
 def fail_closed_writer_timer() -> None:
     import subprocess
-    subprocess.run(["/usr/bin/systemctl", "stop", "trader20-v3.timer"], check=False, timeout=10, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["/usr/bin/systemctl", "stop", "trader20-v3.timer"], check=True, timeout=10, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    status = subprocess.run(["/usr/bin/systemctl", "is-active", "trader20-v3.timer"], check=False, timeout=5, capture_output=True, text=True)
+    if status.stdout.strip() != "inactive":
+        raise RuntimeError("writer_timer_stop_unconfirmed")
 
 
 def make_envelope(operation: str, data: object, *, degraded: bool = False, reason: str = "") -> dict:
@@ -355,7 +376,8 @@ def handle(value: dict) -> dict:
                 management_reason = ",".join(reasons)
                 result["reason"] = ";".join(part for part in (current_reason, management_reason) if part)
             elif isinstance(prepared_count, int) and prepared_count < 20:
-                result["reason"] = "leader_discovery_incomplete"
+                current_reason = str(result.get("reason") or "").strip()
+                result["reason"] = ";".join(part for part in (current_reason, "leader_discovery_incomplete") if part)
         return result
     if operation in CONTROL_OPS:
         data = operational(operation, params, value.get("actor_id"))

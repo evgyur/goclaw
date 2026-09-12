@@ -96,9 +96,30 @@ class BrokerTests(unittest.TestCase):
             with self.assertRaises(broker.EffectError) as caught:
                 broker.operational("latch_kill", {"reason": "owner_request"}, "617744661")
         self.assertTrue(caught.exception.effect_attempted)
+        broker.kill_attempted = False  # simulate broker restart
         self.assertTrue(broker.state()["kill_latched"])
         with self.assertRaisesRegex(RuntimeError, "kill_latched"):
             broker.operational("resume_entries", {}, "617744661")
+
+    def test_health_preserves_canonical_reason_when_discovery_incomplete(self):
+        broker.atomic_json(broker.ROSTER, {"prepared_count": 3})
+        canonical = {
+            "protocol": "trader20.control.v1", "operation": "runtime_health",
+            "degraded": True, "reason": "canonical_risk_blocker", "data": {},
+        }
+        with patch.object(broker, "proxy_read", return_value=canonical):
+            result = broker.handle({"operation": "runtime_health", "params": {}, "actor_id": "617744661"})
+        self.assertEqual("canonical_risk_blocker;leader_discovery_incomplete", result["reason"])
+
+    def test_timer_stop_failure_is_ambiguous_effect(self):
+        broker.operational("pause_entries", {"reason": "test"}, "617744661")
+        with patch.object(broker, "atomic_hold", side_effect=OSError("hold")), \
+             patch.object(broker, "save_state", side_effect=[None, OSError("rollback")]), \
+             patch.object(broker, "fail_closed_writer_timer", side_effect=TimeoutError("stop")):
+            with self.assertRaises(broker.EffectError) as caught:
+                broker.operational("resume_entries", {}, "617744661")
+        self.assertTrue(caught.exception.effect_attempted)
+        self.assertIn("timer_stop_unconfirmed", str(caught.exception))
 
 
 if __name__ == "__main__":
