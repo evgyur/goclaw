@@ -1,7 +1,7 @@
 [Unit]
 Description=Haraldr narrow control broker for incumbent Trader20 v3
-After=trader20-v3-control-read.service
-Requires=trader20-v3-control-read.service
+After=trader20-v3-control-read.service trader20-v3-control.service
+Requires=trader20-v3-control-read.service trader20-v3-control.service
 ConditionPathExists=/opt/haraldr-goclaw/current/deploy/haraldr-goclaw/trader20_control_broker.py
 
 [Service]
@@ -21,7 +21,7 @@ CapabilityBoundingSet=
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadOnlyPaths=/opt/trader20-v3 /var/lib/trader20-v3/state
+ReadOnlyPaths=/opt/trader20-v3 /var/lib/trader20-v3/state /run/trader20-control
 ReadWritePaths=/var/lib/trader20-v3/state/haraldr-control /run/trader20-haraldr-control /run/trader20-control-read
 RestrictAddressFamilies=AF_UNIX
 SystemCallArchitectures=native

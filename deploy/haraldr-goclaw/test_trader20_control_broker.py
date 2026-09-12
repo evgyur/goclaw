@@ -62,10 +62,14 @@ class BrokerTests(unittest.TestCase):
             broker.operational("resume_entries", {}, "617744661")
         self.assertIn("=1", broker.HOLD_ENV.read_text())
 
-    def test_manual_money_lane_is_not_spoofed(self):
-        for operation in ("plan_trade", "execute_plan"):
-            with self.assertRaisesRegex(RuntimeError, "candidate_bound_authority"):
-                broker.operational(operation, {}, "617744661")
+    def test_manual_money_lane_is_forwarded_only_for_authenticated_owner(self):
+        canonical = {"protocol": "trader20.control.v1", "operation": "plan_trade", "data": {"state": "PLANNED"}}
+        with patch.object(broker, "proxy_trader20", return_value=canonical) as proxy:
+            result = broker.operational("plan_trade", {"request": "exact"}, "617744661")
+        self.assertEqual(canonical, result)
+        proxy.assert_called_once_with("plan_trade", {"request": "exact"}, "617744661")
+        with self.assertRaises(PermissionError):
+            broker.operational("execute_plan", {}, "1")
 
     def test_live_websocket_schema_exact_six_is_ready(self):
         broker.atomic_json(broker.WS, {
@@ -120,7 +124,7 @@ class BrokerTests(unittest.TestCase):
             "protocol": "trader20.control.v1", "operation": "runtime_health",
             "degraded": True, "reason": "canonical_risk_blocker", "data": {},
         }
-        with patch.object(broker, "proxy_read", return_value=canonical):
+        with patch.object(broker, "proxy_trader20", return_value=canonical):
             result = broker.handle({"operation": "runtime_health", "params": {}, "actor_id": "617744661"})
         self.assertEqual("canonical_risk_blocker;leader_discovery_incomplete", result["reason"])
 

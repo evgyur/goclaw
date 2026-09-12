@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Narrow host broker between Haraldr GoClaw and the incumbent Trader20 v3 owner.
 
-The broker has no exchange SDK, signer, wallet secret, or order endpoint. Reads are
-proxied to the canonical Trader20 control projection. Operational controls only
+The broker has no exchange SDK, signer, wallet secret, or order endpoint. Reads and
+candidate-bound plan/execute requests are proxied to Trader20. Operational controls
 set the independent entry-hold override after authoritative local readbacks.
-Manual plan/execute remains fail-closed until a candidate-bound operator lane is
-provisioned in the incumbent writer.
 """
 from __future__ import annotations
 
@@ -20,6 +18,7 @@ import time
 
 SOCKET = Path(os.environ.get("TRADER20_HARALDR_SOCKET", "/run/trader20-haraldr-control/control.sock"))
 READ_SOCKET = Path(os.environ.get("TRADER20_READ_SOCKET", "/run/trader20-control-read/control.sock"))
+CONTROL_SOCKET = Path(os.environ.get("TRADER20_CONTROL_SOCKET", "/run/trader20-control/control.sock"))
 STATE_ROOT = Path(os.environ.get("TRADER20_STATE_ROOT", "/var/lib/trader20-v3/state"))
 CURRENT = Path(os.environ.get("TRADER20_CURRENT", "/opt/trader20-v3/current"))
 HOLD_ENV = Path(os.environ.get("TRADER20_HARALDR_HOLD_ENV", "/var/lib/trader20-v3/state/haraldr-control/entry-hold.env"))
@@ -105,18 +104,19 @@ def atomic_hold(held: bool, *, kill_latched: bool = False) -> None:
             pass
 
 
-def proxy_read(operation: str, params: dict) -> dict:
+def proxy_trader20(operation: str, params: dict, actor_id: str | None = None) -> dict:
+    target = READ_SOCKET if operation in READ_OPS and operation != "capabilities" else CONTROL_SOCKET
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
         client.settimeout(60)
-        client.connect(str(READ_SOCKET))
-        client.sendall(json.dumps({"operation": operation, "params": params}, allow_nan=False).encode() + b"\n")
+        client.connect(str(target))
+        client.sendall(json.dumps({"operation": operation, "params": params, "actor_id": actor_id}, allow_nan=False).encode() + b"\n")
         with client.makefile("rb") as stream:
             raw = stream.readline(MAX_RESPONSE + 1)
     if len(raw) > MAX_RESPONSE or not raw.endswith(b"\n"):
-        raise RuntimeError("canonical_read_response_invalid")
+        raise RuntimeError("canonical_control_response_invalid")
     value = json.loads(raw)
     if not isinstance(value, dict):
-        raise RuntimeError("canonical_read_response_invalid")
+        raise RuntimeError("canonical_control_response_invalid")
     return value
 
 
@@ -300,9 +300,9 @@ def operational(operation: str, params: dict, actor: object) -> dict:
             raise EffectError(reason, effect_attempted=True) from exc
         return {"ok": True, "state": "ENTRIES_ENABLED", "effect": "entry_hold_released", "actor": principal, "evidence": evidence}
     if operation == "cancel_pending_plan":
-        raise RuntimeError("no_operator_plan_lane_provisioned")
+        return proxy_trader20(operation, params, principal)
     if operation in {"plan_trade", "execute_plan"}:
-        raise RuntimeError("operator_money_lane_requires_new_candidate_bound_authority")
+        return proxy_trader20(operation, params, principal)
     raise ValueError("unsupported_operation")
 
 
@@ -330,12 +330,13 @@ def handle(value: dict) -> dict:
     operational_ops = {"pause_entries", "resume_entries", "latch_kill", "cancel_pending_plan"}
     money_ops = {"plan_trade", "execute_plan"}
     if operation == "capabilities":
-        return make_envelope(operation, {
+        result = proxy_trader20(operation, params)
+        raw_data = result.get("data")
+        data = dict(raw_data) if isinstance(raw_data, dict) else {}
+        data.update({
             "operations": sorted(READ_OPS | CONTROL_OPS),
             "operational_controls": sorted(operational_ops),
             "money_controls": sorted(money_ops),
-            "money_control_available": False,
-            "money_control_blocker": "candidate_bound_authority_and_writer_adapter_not_provisioned",
             "single_writer": "trader20-v3",
             "raw_exchange_credentials": False,
             "direct_exchange_write": False,
@@ -345,8 +346,10 @@ def handle(value: dict) -> dict:
             "signing_available": False,
             "account_configured": True,
         })
+        result["data"] = data
+        return result
     if operation in READ_OPS:
-        result = proxy_read(operation, params)
+        result = proxy_trader20(operation, params)
         if operation == "runtime_health" and isinstance(result, dict):
             ready, reasons, evidence = readiness()
             control = state()
@@ -378,6 +381,8 @@ def handle(value: dict) -> dict:
         return result
     if operation in CONTROL_OPS:
         data = operational(operation, params, value.get("actor_id"))
+        if operation in {"plan_trade", "execute_plan", "cancel_pending_plan"}:
+            return data
         return make_envelope(operation, data)
     raise ValueError("unsupported_operation")
 

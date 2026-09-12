@@ -1,16 +1,16 @@
 {
   "schema": "trader20.haraldr-goclaw-release.v1",
   "phase": "B03-haraldr-operational-control",
-  "source_commit": "13e8847b4679994b6bda7fa687ed96b2982bafa6",
-  "source_tree": "3c49477c33ca4e82852740ffd9e15be1d7d4199f",
-  "runtime_image": "haraldr-goclaw-runtime:13e8847b4679994b6bda7fa687ed96b2982bafa6",
+  "source_commit": "f715da9d678d87cc2893f7e726081cf86f1285af",
+  "source_tree": "b5842542baec7f4e3ae91eebca0f0645e6018694",
+  "runtime_image": "haraldr-goclaw-runtime:f715da9d678d87cc2893f7e726081cf86f1285af",
   "runtime_image_digest": null,
   "runtime_image_digest_gate": "required after offline build and before provisioning or start",
   "a02": {
     "protocol": "trader20.control.v1",
-    "contract_hash": "2e5c855116289d7d3ad49217d472b0dcd4ab10fed83f0dddc9abb236883fe38e",
-    "core_hash": "7d92953aa75a74e96d4e7bfb864b20ac7889d99b02aa1506c2139bccb90b7c68",
-    "goclaw_projection_hash": "17d18a7868c38800f76f59217502fba9fedde20b16a02da422ce1b0a2f3a6e55",
+    "contract_hash": "b3e8a5955aee248c994fecba5890e7091a7a4d7567a3475acbb1cef0c505c4cd",
+    "core_hash": "387b037885cf7b6f94e21811f74a58342d43ece3ec1e5585b9e535db1600fbcd",
+    "goclaw_projection_hash": "e3f2f599646cc124cfaa7b20399944d88e0a41a59148185576c97c4e7ff4f32c",
     "hermes_projection_hash": "8f9208fc256e2ad5c56f85d8258d1470f137a1cc1206836bc42709fcac099d91"
   },
   "activation_authorized": true,
