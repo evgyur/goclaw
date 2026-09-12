@@ -234,7 +234,7 @@ def operational(operation: str, params: dict, actor: object) -> dict:
         raise ValueError("reason_invalid")
     if operation == "pause_entries":
         try:
-            atomic_hold(True)
+            atomic_hold(True, kill_latched=current_state["kill_latched"])
         except Exception as exc:
             raise EffectError("pause_hold_persistence_failed", effect_attempted=True) from exc
         current_state.update(entries_paused=True, pause_reason=reason)
