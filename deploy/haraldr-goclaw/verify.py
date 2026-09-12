@@ -12,8 +12,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-EXPECTED_COMMIT = "87e05b88b55cb2cdf150ac0e7884df80149be07f"
-EXPECTED_TREE = "512b9e5643a54bb64ace24108037e06707ac9faa"
+EXPECTED_COMMIT = "a01964308ec3c693d644376a58e7afa60a75d176"
+EXPECTED_TREE = "0834e7680d3c740799dee28927e7ce102e57062c"
 BOUNDED_TOOLS = {
     "trader20_capabilities", "trader20_status", "trader20_positions",
     "trader20_orders", "trader20_history", "trader20_explain_blocker",
@@ -178,7 +178,7 @@ def verify() -> dict:
         raise AssertionError("; ".join(errors))
     return {
         "ok": True,
-        "phase": "B02-bounded-control-projections",
+        "phase": "B03-haraldr-operational-control",
         "candidate_commit": EXPECTED_COMMIT,
         "candidate_tree": source_tree,
         "scaffold_commit": head,

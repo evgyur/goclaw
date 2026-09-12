@@ -9,7 +9,7 @@ metadata:
 
 # Trader20
 
-Use the platform adapter in `adapters/` for exactly: `capabilities`, `status`, `positions`, `orders`, `history`, `explain_blocker`, `runtime_health`, `plan_trade`, and `execute_plan`.
+Use the platform adapter in `adapters/` for exactly: `capabilities`, `status`, `positions`, `orders`, `history`, `explain_blocker`, `runtime_health`, `pause_entries`, `resume_entries`, `latch_kill`, `cancel_pending_plan`, `plan_trade`, and `execute_plan`.
 
 ## Required workflow
 
@@ -20,6 +20,8 @@ Use the platform adapter in `adapters/` for exactly: `capabilities`, `status`, `
 5. Report only tool-envelope fields. Never invent an execution, order, fill, protection, authority, signature, or delivery receipt.
 
 ## Bounded operator-request workflow
+
+`pause_entries`, `resume_entries`, `latch_kill`, and `cancel_pending_plan` are operational controls. Only the authenticated owner may invoke them. `resume_entries` must re-read current activation, writer timer, websocket freshness/completeness, and kill state. The kill latch has no chat-side release.
 
 `plan_trade` and `execute_plan` are separate brokered operations, not direct exchange tools.
 

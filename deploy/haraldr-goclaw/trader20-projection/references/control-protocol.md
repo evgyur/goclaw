@@ -9,8 +9,12 @@ Allowed logical operations, in canonical order:
 5. `history`
 6. `explain_blocker`
 7. `runtime_health`
-8. `plan_trade`
-9. `execute_plan`
+8. `pause_entries`
+9. `resume_entries`
+10. `latch_kill`
+11. `cancel_pending_plan`
+12. `plan_trade`
+13. `execute_plan`
 
 The first seven operations are observation-only. Their normalized envelope is `contracts/trader20-control-v1/read-envelope.schema.json`.
 

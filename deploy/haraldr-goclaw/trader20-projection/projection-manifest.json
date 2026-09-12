@@ -1,7 +1,7 @@
 {
-  "core_hash": "9ca75f08ed2c7150a8e81774504fb45af0e6f06de4361d9c18382cba3cb10c29",
+  "core_hash": "7d92953aa75a74e96d4e7bfb864b20ac7889d99b02aa1506c2139bccb90b7c68",
   "platform": "goclaw",
   "protocol": "trader20.control.v1",
   "schema": "trader20.skill-projection.v1",
-  "source_commit": "87e05b88b55cb2cdf150ac0e7884df80149be07f"
+  "source_commit": "a01964308ec3c693d644376a58e7afa60a75d176"
 }
