@@ -67,6 +67,19 @@ class BrokerTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "candidate_bound_authority"):
                 broker.operational(operation, {}, "617744661")
 
+    def test_live_websocket_schema_exact_six_is_ready(self):
+        broker.atomic_json(broker.WS, {
+            "producer_heartbeat_ms": broker.now_ms(),
+            "source_completeness": {f"leader-{i}": "COMPLETE" for i in range(6)},
+            "leaders_requested": 6,
+            "subscription_acks": 6,
+            "subscriptions_complete": True,
+            "entries_halted": False,
+        })
+        ready, reasons, evidence = broker.readiness()
+        self.assertTrue(ready, reasons)
+        self.assertEqual(6, evidence["websocket_complete_leaders"])
+
     def test_runtime_drift_blocks_resume(self):
         broker.operational("pause_entries", {"reason": "test"}, "617744661")
         broker.atomic_json(broker.WS, {"producer_heartbeat_ms": broker.now_ms(), "complete_leader_count": 5, "entries_halted": False})

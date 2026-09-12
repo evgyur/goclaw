@@ -155,11 +155,17 @@ def readiness() -> tuple[bool, list[str], dict]:
         reasons.append("current_release_mismatch")
     ws = load_json(WS)
     heartbeat = ws.get("producer_heartbeat_ms", ws.get("heartbeat_ms"))
+    completeness = ws.get("source_completeness")
     complete = ws.get("complete_leader_count", ws.get("leader_count"))
+    if complete is None and isinstance(completeness, dict):
+        complete = sum(1 for value in completeness.values() if value == "COMPLETE")
+    requested = ws.get("leaders_requested")
+    acknowledgements = ws.get("subscription_acks")
+    subscriptions_complete = ws.get("subscriptions_complete")
     halted = ws.get("entries_halted")
     if not isinstance(heartbeat, int) or now_ms() - heartbeat > 120_000 or heartbeat > now_ms() + 5_000:
         reasons.append("websocket_stale")
-    if complete != 6 or halted is not False:
+    if complete != 6 or halted is not False or (requested is not None and requested != 6) or (acknowledgements is not None and acknowledgements != 6) or (subscriptions_complete is not None and subscriptions_complete is not True):
         reasons.append("websocket_not_exact_six")
     if not service_active("trader20-v3.timer"):
         reasons.append("writer_timer_inactive")
@@ -172,6 +178,9 @@ def readiness() -> tuple[bool, list[str], dict]:
         "activation_release": release,
         "release_candidate_sha": release_candidate,
         "websocket_complete_leaders": complete,
+        "websocket_leaders_requested": requested,
+        "websocket_subscription_acks": acknowledgements,
+        "websocket_subscriptions_complete": subscriptions_complete,
         "websocket_entries_halted": halted,
         "websocket_heartbeat_ms": heartbeat,
         "writer_timer_active": service_active("trader20-v3.timer"),
