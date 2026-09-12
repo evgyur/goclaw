@@ -113,6 +113,18 @@ func TestClientFailsClosedOnEndpointAccountAndHistoryRange(t *testing.T) {
 	}
 }
 
+func TestControlSocketRejectsTraversalAndNonCanonicalPaths(t *testing.T) {
+	for _, path := range []string{
+		"/run/trader20-haraldr-control/../other.sock",
+		"/run/trader20-haraldr-control/other.sock",
+		"/tmp/control.sock",
+	} {
+		if _, err := NewClient(Config{Account: testAccount, ControlSocket: path}); err == nil {
+			t.Fatalf("control socket path %q accepted", path)
+		}
+	}
+}
+
 func TestStaleProviderTimestampIsExplicitlyDegraded(t *testing.T) {
 	client, _ := testClient(t, func(string) string { return `[{"time":1000}]` })
 	client.cfg.MaxStaleness = 100 * time.Millisecond

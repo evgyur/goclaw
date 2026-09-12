@@ -10,6 +10,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -72,8 +74,16 @@ func NewClient(cfg Config) (*Client, error) {
 		if err := validateInfoURL(cfg.InfoURL, cfg.AllowLoopbackHTTP); err != nil {
 			return nil, err
 		}
-	} else if !strings.HasPrefix(cfg.ControlSocket, "/run/trader20-haraldr-control/") {
-		return nil, errors.New("control socket must be inside the dedicated runtime directory")
+	} else {
+		const controlDir = "/run/trader20-haraldr-control"
+		clean := filepath.Clean(cfg.ControlSocket)
+		if clean != cfg.ControlSocket || filepath.Dir(clean) != controlDir || filepath.Base(clean) != "control.sock" {
+			return nil, errors.New("control socket must be the exact dedicated socket path")
+		}
+		resolved, err := filepath.EvalSymlinks(controlDir)
+		if err != nil || resolved != controlDir {
+			return nil, errors.New("control socket directory identity invalid")
+		}
 	}
 	cfg.Account = strings.TrimSpace(cfg.Account)
 	if !accountPattern.MatchString(cfg.Account) {
@@ -248,6 +258,11 @@ func (c *Client) Control(ctx context.Context, operation string, params map[strin
 	}
 	body, err := json.Marshal(map[string]any{"operation": operation, "params": params, "actor_id": actorID})
 	if err != nil {
+		return c.failure(operation, err), err
+	}
+	info, err := os.Lstat(c.cfg.ControlSocket)
+	if err != nil || info.Mode()&os.ModeSocket == 0 {
+		err = errors.New("control socket identity invalid")
 		return c.failure(operation, err), err
 	}
 	dialer := net.Dialer{Timeout: 5 * time.Second}

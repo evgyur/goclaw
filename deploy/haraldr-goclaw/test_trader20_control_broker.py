@@ -18,17 +18,19 @@ class BrokerTests(unittest.TestCase):
         root = Path(self.tmp.name)
         broker.STATE_ROOT = root / "state"
         broker.CONTROL_STATE = broker.STATE_ROOT / "haraldr-control/state.json"
+        broker.KILL_SENTINEL = broker.STATE_ROOT / "haraldr-control/kill-latched"
         broker.ACTIVATION = broker.STATE_ROOT / "activation/trader20-v3-active.json"
         broker.WS = broker.STATE_ROOT / "ws-shadow/signals_raw.json"
         broker.ROSTER = broker.STATE_ROOT / "leader-rotation/leader_roster_latest.json"
         broker.WATCH_STATE = broker.STATE_ROOT / "operator-receipts/copy-readiness-watch-state.json"
         broker.HOLD_ENV = root / "haraldr-control.env"
         broker.CURRENT = root / "current"
-        release = root / "release"
+        release = root / ("release-" + "a" * 12)
         release.mkdir()
         broker.CURRENT.symlink_to(release)
         broker.atomic_json(broker.ACTIVATION, {"status": "ACTIVE", "candidate_sha": "a" * 40, "release": str(release)})
         broker.atomic_json(broker.WS, {"producer_heartbeat_ms": broker.now_ms(), "complete_leader_count": 6, "entries_halted": False})
+        broker.save_state({"kill_latched": False, "entries_paused": False, "kill_reason": None, "pause_reason": None})
         self.env = patch.dict("os.environ", {"TRADER20_OPERATOR_USER_ID": "617744661"})
         self.env.start()
         self.services = patch.object(broker, "service_active", return_value=True)
@@ -68,6 +70,23 @@ class BrokerTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "websocket_not_exact_six"):
             broker.operational("resume_entries", {}, "617744661")
         self.assertIn("=1", broker.HOLD_ENV.read_text())
+
+    def test_missing_or_corrupt_state_never_releases_hold(self):
+        broker.atomic_hold(True)
+        broker.CONTROL_STATE.unlink()
+        with self.assertRaisesRegex(RuntimeError, "kill_latched"):
+            broker.operational("resume_entries", {}, "617744661")
+        self.assertIn("=1", broker.HOLD_ENV.read_text())
+        broker.CONTROL_STATE.write_text("not-json")
+        with self.assertRaisesRegex(RuntimeError, "kill_latched"):
+            broker.operational("resume_entries", {}, "617744661")
+
+    def test_kill_sentinel_survives_state_loss(self):
+        broker.operational("latch_kill", {"reason": "owner_request"}, "617744661")
+        broker.CONTROL_STATE.unlink()
+        self.assertTrue(broker.state()["kill_latched"])
+        with self.assertRaisesRegex(RuntimeError, "kill_latched"):
+            broker.operational("resume_entries", {}, "617744661")
 
 
 if __name__ == "__main__":

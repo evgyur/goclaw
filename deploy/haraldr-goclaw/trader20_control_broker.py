@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import socketserver
 import tempfile
@@ -21,8 +22,9 @@ SOCKET = Path(os.environ.get("TRADER20_HARALDR_SOCKET", "/run/trader20-haraldr-c
 READ_SOCKET = Path(os.environ.get("TRADER20_READ_SOCKET", "/run/trader20-control-read/control.sock"))
 STATE_ROOT = Path(os.environ.get("TRADER20_STATE_ROOT", "/var/lib/trader20-v3/state"))
 CURRENT = Path(os.environ.get("TRADER20_CURRENT", "/opt/trader20-v3/current"))
-HOLD_ENV = Path(os.environ.get("TRADER20_HARALDR_HOLD_ENV", "/etc/trader20-v3/haraldr-control.env"))
+HOLD_ENV = Path(os.environ.get("TRADER20_HARALDR_HOLD_ENV", "/var/lib/trader20-v3/state/haraldr-control/entry-hold.env"))
 CONTROL_STATE = STATE_ROOT / "haraldr-control" / "state.json"
+KILL_SENTINEL = STATE_ROOT / "haraldr-control" / "kill-latched"
 ACTIVATION = STATE_ROOT / "activation" / "trader20-v3-active.json"
 WS = STATE_ROOT / "ws-shadow" / "signals_raw.json"
 ROSTER = STATE_ROOT / "leader-rotation" / "leader_roster_latest.json"
@@ -31,6 +33,13 @@ MAX_REQUEST = 64 * 1024
 MAX_RESPONSE = 4 * 1024 * 1024
 READ_OPS = {"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health"}
 CONTROL_OPS = {"pause_entries", "resume_entries", "latch_kill", "cancel_pending_plan", "plan_trade", "execute_plan"}
+CANDIDATE = re.compile(r"^[0-9a-f]{40}$")
+
+
+class EffectError(RuntimeError):
+    def __init__(self, message: str, *, effect_attempted: bool):
+        super().__init__(message)
+        self.effect_attempted = effect_attempted
 
 
 def now_ms() -> int:
@@ -129,7 +138,11 @@ def readiness() -> tuple[bool, list[str], dict]:
     release = str(activation.get("release") or activation.get("release_path") or "")
     if status != "ACTIVE":
         reasons.append("activation_not_active")
-    if not current or (release and current != release):
+    if not CANDIDATE.fullmatch(candidate):
+        reasons.append("activation_candidate_invalid")
+    if not current or not CANDIDATE.fullmatch(candidate) or not Path(current).name.endswith("-" + candidate[:12]):
+        reasons.append("current_candidate_mismatch")
+    if release and current != release:
         reasons.append("current_release_mismatch")
     ws = load_json(WS)
     heartbeat = ws.get("producer_heartbeat_ms", ws.get("heartbeat_ms"))
@@ -158,11 +171,18 @@ def readiness() -> tuple[bool, list[str], dict]:
 
 def state() -> dict:
     value = load_json(CONTROL_STATE)
+    valid = (
+        value.get("schema") == "trader20.haraldr-control-state.v1"
+        and type(value.get("kill_latched")) is bool
+        and type(value.get("entries_paused")) is bool
+    )
+    sentinel = KILL_SENTINEL.exists()
     return {
         "schema": "trader20.haraldr-control-state.v1",
-        "kill_latched": value.get("kill_latched") is True,
+        "state_valid": valid,
+        "kill_latched": sentinel or not valid or value.get("kill_latched") is True,
         "kill_reason": value.get("kill_reason"),
-        "entries_paused": value.get("entries_paused") is True,
+        "entries_paused": not valid or value.get("entries_paused") is True,
         "pause_reason": value.get("pause_reason"),
         "updated_at_ms": value.get("updated_at_ms"),
     }
@@ -192,22 +212,39 @@ def operational(operation: str, params: dict, actor: object) -> dict:
     if operation == "pause_entries":
         atomic_hold(True)
         current_state.update(entries_paused=True, pause_reason=reason)
-        save_state(current_state)
+        try:
+            save_state(current_state)
+        except Exception as exc:
+            raise EffectError("pause_state_persistence_failed", effect_attempted=True) from exc
         return {"ok": True, "state": "ENTRIES_PAUSED", "effect": "entry_hold_enabled", "actor": principal}
     if operation == "latch_kill":
-        atomic_hold(True)
+        atomic_json(KILL_SENTINEL, {"schema": "trader20.haraldr-kill.v1", "actor": principal, "reason": reason, "latched_at_ms": now_ms()})
+        try:
+            atomic_hold(True)
+        except Exception as exc:
+            raise EffectError("kill_hold_persistence_failed", effect_attempted=True) from exc
         current_state.update(kill_latched=True, kill_reason=reason, entries_paused=True, pause_reason="kill_latched")
-        save_state(current_state)
+        try:
+            save_state(current_state)
+        except Exception as exc:
+            raise EffectError("kill_state_persistence_failed", effect_attempted=True) from exc
         return {"ok": True, "state": "KILL_LATCHED", "effect": "entry_hold_enabled", "actor": principal}
     if operation == "resume_entries":
-        if current_state["kill_latched"]:
+        if not current_state["state_valid"] or current_state["kill_latched"]:
             raise RuntimeError("kill_latched_requires_out_of_band_recovery")
         ready, reasons, evidence = readiness()
         if not ready:
             raise RuntimeError("resume_fail_closed:" + ",".join(reasons))
-        atomic_hold(False)
-        current_state.update(entries_paused=False, pause_reason=None)
-        save_state(current_state)
+        try:
+            atomic_hold(False)
+            current_state.update(entries_paused=False, pause_reason=None)
+            save_state(current_state)
+        except Exception as exc:
+            try:
+                atomic_hold(True)
+            except Exception:
+                pass
+            raise EffectError("resume_persistence_failed_entry_hold_restored", effect_attempted=True) from exc
         return {"ok": True, "state": "ENTRIES_ENABLED", "effect": "entry_hold_released", "actor": principal, "evidence": evidence}
     if operation == "cancel_pending_plan":
         raise RuntimeError("no_operator_plan_lane_provisioned")
@@ -306,7 +343,7 @@ class Handler(socketserver.StreamRequestHandler):
                 "degraded": True,
                 "reason": str(exc)[:240],
                 "data": None,
-                "effect_attempted": False,
+                "effect_attempted": bool(getattr(exc, "effect_attempted", False)),
             }
         encoded = json.dumps(result, sort_keys=True, allow_nan=False).encode() + b"\n"
         if len(encoded) > MAX_RESPONSE:
