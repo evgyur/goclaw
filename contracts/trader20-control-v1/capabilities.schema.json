@@ -17,11 +17,13 @@
               "prefixItems": [
                 {"const": "capabilities"}, {"const": "status"}, {"const": "positions"},
                 {"const": "orders"}, {"const": "history"}, {"const": "explain_blocker"},
-                {"const": "runtime_health"}, {"const": "plan_trade"}, {"const": "execute_plan"}
+                {"const": "runtime_health"}, {"const": "pause_entries"}, {"const": "resume_entries"},
+                {"const": "latch_kill"}, {"const": "cancel_pending_plan"},
+                {"const": "plan_trade"}, {"const": "execute_plan"}
               ],
               "items": false,
-              "minItems": 9,
-              "maxItems": 9
+              "minItems": 13,
+              "maxItems": 13
             },
             "provider_endpoint": {"const": "/info"},
             "control_endpoint_configured": {"type": "boolean"},
@@ -33,7 +35,14 @@
               "maxItems": 2
             },
             "signing_available": {"const": false},
-            "account_configured": {"type": "boolean"}
+            "account_configured": {"type": "boolean"},
+            "operational_controls": {"type": "array", "items": {"enum": ["pause_entries", "resume_entries", "latch_kill", "cancel_pending_plan"]}, "uniqueItems": true},
+            "money_controls": {"type": "array", "prefixItems": [{"const": "execute_plan"}, {"const": "plan_trade"}], "items": false, "minItems": 2, "maxItems": 2},
+            "money_control_available": {"type": "boolean"},
+            "money_control_blocker": {"type": "string"},
+            "single_writer": {"const": "trader20-v3"},
+            "raw_exchange_credentials": {"const": false},
+            "direct_exchange_write": {"const": false}
           }
         }
       }

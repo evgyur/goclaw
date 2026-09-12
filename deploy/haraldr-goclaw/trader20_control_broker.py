@@ -249,6 +249,11 @@ def handle(value: dict) -> dict:
             "single_writer": "trader20-v3",
             "raw_exchange_credentials": False,
             "direct_exchange_write": False,
+            "provider_endpoint": "/info",
+            "control_endpoint_configured": True,
+            "write_capabilities": ["plan_trade", "execute_plan"],
+            "signing_available": False,
+            "account_configured": True,
         })
     if operation in READ_OPS:
         result = proxy_read(operation, params)

@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 READ_OPERATIONS = ("capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health")
-OPERATIONS = READ_OPERATIONS + ("plan_trade", "execute_plan")
+OPERATIONS = READ_OPERATIONS + ("pause_entries", "resume_entries", "latch_kill", "cancel_pending_plan", "plan_trade", "execute_plan")
 REJECTION_CATEGORIES = {
     "account_conflation",
     "stale_as_live",
