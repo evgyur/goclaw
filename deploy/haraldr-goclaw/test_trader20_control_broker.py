@@ -1,0 +1,74 @@
+import importlib.util
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+MODULE = Path(__file__).with_name("trader20_control_broker.py")
+spec = importlib.util.spec_from_file_location("broker", MODULE)
+broker = importlib.util.module_from_spec(spec)
+assert spec and spec.loader
+spec.loader.exec_module(broker)
+
+
+class BrokerTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        broker.STATE_ROOT = root / "state"
+        broker.CONTROL_STATE = broker.STATE_ROOT / "haraldr-control/state.json"
+        broker.ACTIVATION = broker.STATE_ROOT / "activation/trader20-v3-active.json"
+        broker.WS = broker.STATE_ROOT / "ws-shadow/signals_raw.json"
+        broker.ROSTER = broker.STATE_ROOT / "leader-rotation/leader_roster_latest.json"
+        broker.WATCH_STATE = broker.STATE_ROOT / "operator-receipts/copy-readiness-watch-state.json"
+        broker.HOLD_ENV = root / "haraldr-control.env"
+        broker.CURRENT = root / "current"
+        release = root / "release"
+        release.mkdir()
+        broker.CURRENT.symlink_to(release)
+        broker.atomic_json(broker.ACTIVATION, {"status": "ACTIVE", "candidate_sha": "a" * 40, "release": str(release)})
+        broker.atomic_json(broker.WS, {"producer_heartbeat_ms": broker.now_ms(), "complete_leader_count": 6, "entries_halted": False})
+        self.env = patch.dict("os.environ", {"TRADER20_OPERATOR_USER_ID": "617744661"})
+        self.env.start()
+        self.services = patch.object(broker, "service_active", return_value=True)
+        self.services.start()
+
+    def tearDown(self):
+        self.services.stop()
+        self.env.stop()
+        self.tmp.cleanup()
+
+    def test_unauthorized_actor_cannot_mutate(self):
+        with self.assertRaises(PermissionError):
+            broker.operational("pause_entries", {"reason": "x"}, "1")
+        self.assertFalse(broker.HOLD_ENV.exists())
+
+    def test_pause_resume_and_kill_are_durable_and_fail_closed(self):
+        paused = broker.operational("pause_entries", {"reason": "owner_request"}, "617744661")
+        self.assertEqual(paused["state"], "ENTRIES_PAUSED")
+        self.assertIn("=1", broker.HOLD_ENV.read_text())
+        resumed = broker.operational("resume_entries", {}, "617744661")
+        self.assertEqual(resumed["state"], "ENTRIES_ENABLED")
+        self.assertIn("=0", broker.HOLD_ENV.read_text())
+        killed = broker.operational("latch_kill", {"reason": "owner_request"}, "617744661")
+        self.assertEqual(killed["state"], "KILL_LATCHED")
+        with self.assertRaisesRegex(RuntimeError, "kill_latched"):
+            broker.operational("resume_entries", {}, "617744661")
+        self.assertIn("=1", broker.HOLD_ENV.read_text())
+
+    def test_manual_money_lane_is_not_spoofed(self):
+        for operation in ("plan_trade", "execute_plan"):
+            with self.assertRaisesRegex(RuntimeError, "candidate_bound_authority"):
+                broker.operational(operation, {}, "617744661")
+
+    def test_runtime_drift_blocks_resume(self):
+        broker.operational("pause_entries", {"reason": "test"}, "617744661")
+        broker.atomic_json(broker.WS, {"producer_heartbeat_ms": broker.now_ms(), "complete_leader_count": 5, "entries_halted": False})
+        with self.assertRaisesRegex(RuntimeError, "websocket_not_exact_six"):
+            broker.operational("resume_entries", {}, "617744661")
+        self.assertIn("=1", broker.HOLD_ENV.read_text())
+
+
+if __name__ == "__main__":
+    unittest.main()

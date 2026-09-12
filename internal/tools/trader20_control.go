@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nextlevelbuilder/goclaw/internal/store"
 	"github.com/nextlevelbuilder/goclaw/internal/trader20control"
 )
 
@@ -18,7 +19,7 @@ type Trader20ControlTool struct {
 	client    *trader20control.Client
 }
 
-var trader20Operations = []string{"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health", "plan_trade", "execute_plan"}
+var trader20Operations = []string{"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health", "pause_entries", "resume_entries", "latch_kill", "cancel_pending_plan", "plan_trade", "execute_plan"}
 
 func Trader20ReadOnlyOperations() []string {
 	return append([]string(nil), trader20Operations...)
@@ -34,11 +35,12 @@ func NewTrader20ControlToolsFromEnv() ([]Tool, error) {
 		maxStaleness = time.Duration(seconds) * time.Second
 	}
 	client, err := trader20control.NewClient(trader20control.Config{
-		InfoURL:      os.Getenv("TRADER20_HYPERLIQUID_INFO_URL"),
-		Account:      os.Getenv("TRADER20_HYPERLIQUID_ACCOUNT"),
-		CandidateSHA: os.Getenv("TRADER20_CANDIDATE_SHA"),
-		PolicyHash:   os.Getenv("TRADER20_POLICY_HASH"),
-		MaxStaleness: maxStaleness,
+		InfoURL:       os.Getenv("TRADER20_HYPERLIQUID_INFO_URL"),
+		Account:       os.Getenv("TRADER20_HYPERLIQUID_ACCOUNT"),
+		CandidateSHA:  os.Getenv("TRADER20_CANDIDATE_SHA"),
+		PolicyHash:    os.Getenv("TRADER20_POLICY_HASH"),
+		ControlSocket: os.Getenv("TRADER20_CONTROL_SOCKET"),
+		MaxStaleness:  maxStaleness,
 	})
 	if err != nil {
 		return nil, err
@@ -56,7 +58,7 @@ func NewTrader20ControlTool(operation string, client *trader20control.Client) *T
 
 func (t *Trader20ControlTool) Name() string { return "trader20_" + t.operation }
 func (t *Trader20ControlTool) Description() string {
-	if t.operation == "plan_trade" || t.operation == "execute_plan" {
+	if t.operation == "plan_trade" || t.operation == "execute_plan" || t.operation == "cancel_pending_plan" || t.operation == "pause_entries" || t.operation == "resume_entries" || t.operation == "latch_kill" {
 		return "Brokered trader20.control.v1 " + t.operation + " operation. Never signs locally or exposes a signer or raw exchange credential; exact candidate-bound authority is required."
 	}
 	return "Read-only trader20.control.v1 " + t.operation + " operation. Never signs, places, cancels, closes, transfers, or mutates a wallet."
@@ -73,6 +75,12 @@ func (t *Trader20ControlTool) Parameters() map[string]any {
 			"type": "object", "description": "Exact request validated against the packaged trader20.control.v1 JSON Schema",
 		}
 		required = []string{"request"}
+	} else if t.operation == "cancel_pending_plan" {
+		properties["request"] = map[string]any{"type": "object"}
+		required = []string{"request"}
+	} else if t.operation == "pause_entries" || t.operation == "latch_kill" {
+		properties["reason"] = map[string]any{"type": "string", "minLength": 1, "maxLength": 160}
+		required = []string{"reason"}
 	}
 	out := map[string]any{"type": "object", "properties": properties, "additionalProperties": false}
 	if len(required) > 0 {
@@ -109,8 +117,17 @@ func (t *Trader20ControlTool) Execute(ctx context.Context, args map[string]any) 
 		env, err = t.client.ExplainBlocker(ctx)
 	case "runtime_health":
 		env, err = t.client.RuntimeHealth(ctx)
-	case "plan_trade", "execute_plan":
-		return ErrorResult("trader20 bounded control transport is not configured; no effect was attempted")
+	case "plan_trade", "execute_plan", "cancel_pending_plan":
+		request, ok := args["request"].(map[string]any)
+		if !ok {
+			return ErrorResult("request must be an object")
+		}
+		env, err = t.client.Control(ctx, t.operation, request, store.ActorIDFromContext(ctx))
+	case "pause_entries", "latch_kill":
+		reason, _ := args["reason"].(string)
+		env, err = t.client.Control(ctx, t.operation, map[string]any{"reason": reason}, store.ActorIDFromContext(ctx))
+	case "resume_entries":
+		env, err = t.client.Control(ctx, t.operation, map[string]any{}, store.ActorIDFromContext(ctx))
 	default:
 		return ErrorResult("unsupported trader20 operation")
 	}

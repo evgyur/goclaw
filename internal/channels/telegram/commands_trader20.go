@@ -22,6 +22,7 @@ var trader20CommandRoutes = map[string]string{
 	"/markets": "markets", "/hip3": "markets", "/performance": "perf:24h",
 	"/perf": "perf:24h", "/report": "perf:24h", "/links": "links",
 	"/export": "export", "/alerts": "alerts",
+	"/pause": "pause", "/resume": "resume", "/kill": "kill", "/plan": "plan", "/execute": "execute",
 }
 
 func trader20ModeEnabled() bool {
@@ -40,6 +41,11 @@ func trader20MenuCommands() []telego.BotCommand {
 		{Command: "performance", Description: "Copy performance evidence"},
 		{Command: "markets", Description: "Market readback"},
 		{Command: "alerts", Description: "Alert delivery status"},
+		{Command: "pause", Description: "Pause new Trader20 entries"},
+		{Command: "resume", Description: "Resume entries after live gates"},
+		{Command: "kill", Description: "Latch fail-closed entry kill"},
+		{Command: "plan", Description: "Prepare an exact bounded trade plan"},
+		{Command: "execute", Description: "Execute an explicitly approved plan"},
 	}
 }
 
@@ -57,16 +63,14 @@ func trader20Keyboard() *telego.InlineKeyboardMarkup {
 }
 
 func trader20MenuText() string {
-	return "🧭 trader20 read-only cockpit\n\nUse the buttons below. " +
-		"Every account query is evidence-backed; signing and trading are unavailable."
+	return "🧭 trader20 management cockpit\n\nStatus is evidence-backed. Operational controls use the incumbent single writer; manual money actions remain fail-closed without exact candidate-bound authority."
 }
 
 func trader20RoutePrompt(route string, now time.Time) string {
 	end := now.UTC().Truncate(time.Second)
 	start := end.Add(-7 * 24 * time.Hour)
 	historyWindow := fmt.Sprintf("start_time=%s and end_time=%s", start.Format(time.RFC3339), end.Format(time.RFC3339))
-	prefix := "This is the Haraldr trader20 read-only cockpit. Use only trader20_* tools. " +
-		"Never imply signing, ordering, cancellation, transfer, or live execution capability. "
+	prefix := "This is the Haraldr trader20 management cockpit with read-only evidence and bounded controls. Use only trader20_* tools. Never claim an effect until the tool returns an authoritative receipt. "
 	switch route {
 	case "dash":
 		return prefix + "Call trader20_status, trader20_positions, trader20_orders, and trader20_runtime_health; return a concise dashboard with explicit evidence timestamps and degraded state."
@@ -78,6 +82,16 @@ func trader20RoutePrompt(route string, now time.Time) string {
 		return prefix + "Call trader20_history with " + historyWindow + "; summarize fills and state that the contract window is seven days."
 	case "risk", "blocks":
 		return prefix + "Call trader20_explain_blocker, trader20_status, and trader20_runtime_health; explain the first decisive read-only or degraded gate plainly."
+	case "pause":
+		return prefix + "The owner explicitly requested entry pause. Call trader20_pause_entries with a short reason, then report the returned state."
+	case "resume":
+		return prefix + "The owner explicitly requested entry resume. Call trader20_resume_entries; it must fail closed unless activation, websocket, timer, and kill gates pass."
+	case "kill":
+		return prefix + "The owner explicitly requested the irreversible-in-chat kill latch. Call trader20_latch_kill with a short reason. Never offer an in-chat unlatch."
+	case "plan":
+		return prefix + "Collect all exact plan fields and call trader20_plan_trade only when complete. Planning is not execution."
+	case "execute":
+		return prefix + "Execute only the exact plan hash explicitly approved in this message using trader20_execute_plan. Never infer approval from an earlier plan."
 	case "perf:1h", "perf:24h", "perf:7d", "perf:30d":
 		return prefix + "Call trader20_history with " + historyWindow + "; summarize only directly supported performance evidence. If the requested route exceeds seven days, state the contract limit rather than extrapolating."
 	default:

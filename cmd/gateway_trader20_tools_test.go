@@ -4,15 +4,19 @@ import "testing"
 
 func TestBuiltinTrader20ToolsAreReadOnlyGrantSurfaceAndDisabledByDefault(t *testing.T) {
 	want := map[string]bool{
-		"trader20_capabilities":    false,
-		"trader20_status":          false,
-		"trader20_positions":       false,
-		"trader20_orders":          false,
-		"trader20_history":         false,
-		"trader20_explain_blocker": false,
-		"trader20_runtime_health":  false,
-		"trader20_plan_trade":      false,
-		"trader20_execute_plan":    false,
+		"trader20_capabilities":        false,
+		"trader20_status":              false,
+		"trader20_positions":           false,
+		"trader20_orders":              false,
+		"trader20_history":             false,
+		"trader20_explain_blocker":     false,
+		"trader20_runtime_health":      false,
+		"trader20_pause_entries":       false,
+		"trader20_resume_entries":      false,
+		"trader20_latch_kill":          false,
+		"trader20_cancel_pending_plan": false,
+		"trader20_plan_trade":          false,
+		"trader20_execute_plan":        false,
 	}
 	for _, def := range builtinToolSeedData() {
 		if _, ok := want[def.Name]; !ok {

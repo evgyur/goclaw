@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -38,7 +39,8 @@ type Config struct {
 	PolicyHash        string
 	MaxStaleness      time.Duration
 	HTTPClient        Doer
-	AllowLoopbackHTTP bool // tests and isolated local adapters only
+	AllowLoopbackHTTP bool   // tests and isolated local adapters only
+	ControlSocket     string // dedicated local broker; never a network URL
 }
 
 // Envelope is the normalized GoClaw/MCP response contract.
@@ -66,8 +68,12 @@ func NewClient(cfg Config) (*Client, error) {
 	if cfg.InfoURL == "" {
 		cfg.InfoURL = DefaultInfoURL
 	}
-	if err := validateInfoURL(cfg.InfoURL, cfg.AllowLoopbackHTTP); err != nil {
-		return nil, err
+	if cfg.ControlSocket == "" {
+		if err := validateInfoURL(cfg.InfoURL, cfg.AllowLoopbackHTTP); err != nil {
+			return nil, err
+		}
+	} else if !strings.HasPrefix(cfg.ControlSocket, "/run/trader20-haraldr-control/") {
+		return nil, errors.New("control socket must be inside the dedicated runtime directory")
 	}
 	cfg.Account = strings.TrimSpace(cfg.Account)
 	if !accountPattern.MatchString(cfg.Account) {
@@ -107,6 +113,13 @@ func validateInfoURL(raw string, allowLoopbackHTTP bool) error {
 }
 
 func (c *Client) Capabilities() Envelope {
+	if c.cfg.ControlSocket != "" {
+		env, err := c.Control(context.Background(), "capabilities", map[string]any{}, "")
+		if err == nil {
+			return env
+		}
+		return c.failure("capabilities", err)
+	}
 	data, _ := json.Marshal(map[string]any{
 		"operations":                  []string{"capabilities", "status", "positions", "orders", "history", "explain_blocker", "runtime_health", "plan_trade", "execute_plan"},
 		"provider_endpoint":           "/info",
@@ -119,6 +132,9 @@ func (c *Client) Capabilities() Envelope {
 }
 
 func (c *Client) Status(ctx context.Context) (Envelope, error) {
+	if c.cfg.ControlSocket != "" {
+		return c.Control(ctx, "status", map[string]any{}, "")
+	}
 	raw, err := c.info(ctx, "clearinghouseState", map[string]any{"user": c.cfg.Account})
 	if err != nil {
 		return c.failure("status", err), err
@@ -136,6 +152,9 @@ func (c *Client) Status(ctx context.Context) (Envelope, error) {
 }
 
 func (c *Client) Positions(ctx context.Context) (Envelope, error) {
+	if c.cfg.ControlSocket != "" {
+		return c.Control(ctx, "positions", map[string]any{}, "")
+	}
 	raw, err := c.info(ctx, "clearinghouseState", map[string]any{"user": c.cfg.Account})
 	if err != nil {
 		return c.failure("positions", err), err
@@ -152,6 +171,9 @@ func (c *Client) Positions(ctx context.Context) (Envelope, error) {
 }
 
 func (c *Client) Orders(ctx context.Context) (Envelope, error) {
+	if c.cfg.ControlSocket != "" {
+		return c.Control(ctx, "orders", map[string]any{}, "")
+	}
 	raw, err := c.info(ctx, "frontendOpenOrders", map[string]any{"user": c.cfg.Account})
 	if err != nil {
 		return c.failure("orders", err), err
@@ -168,6 +190,9 @@ func (c *Client) History(ctx context.Context, start, end time.Time) (Envelope, e
 		err := errors.New("history range exceeds 7 days")
 		return c.failure("history", err), err
 	}
+	if c.cfg.ControlSocket != "" {
+		return c.Control(ctx, "history", map[string]any{"start_time": start.UTC().Format(time.RFC3339), "end_time": end.UTC().Format(time.RFC3339)}, "")
+	}
 	raw, err := c.info(ctx, "userFillsByTime", map[string]any{"user": c.cfg.Account, "startTime": start.UnixMilli(), "endTime": end.UnixMilli()})
 	if err != nil {
 		return c.failure("history", err), err
@@ -176,6 +201,9 @@ func (c *Client) History(ctx context.Context, start, end time.Time) (Envelope, e
 }
 
 func (c *Client) RuntimeHealth(ctx context.Context) (Envelope, error) {
+	if c.cfg.ControlSocket != "" {
+		return c.Control(ctx, "runtime_health", map[string]any{}, "")
+	}
 	raw, err := c.info(ctx, "allMids", nil)
 	if err != nil {
 		return c.failure("runtime_health", err), err
@@ -189,6 +217,9 @@ func (c *Client) RuntimeHealth(ctx context.Context) (Envelope, error) {
 }
 
 func (c *Client) ExplainBlocker(ctx context.Context) (Envelope, error) {
+	if c.cfg.ControlSocket != "" {
+		return c.Control(ctx, "explain_blocker", map[string]any{}, "")
+	}
 	reasons := make([]string, 0, 2)
 	if strings.TrimSpace(c.cfg.CandidateSHA) == "" {
 		reasons = append(reasons, "candidate identity unavailable")
@@ -203,6 +234,53 @@ func (c *Client) ExplainBlocker(ctx context.Context) (Envelope, error) {
 	}
 	data, _ := json.Marshal(map[string]any{"blocked": len(reasons) > 0, "reasons": reasons, "trading_available": false})
 	return c.envelope("explain_blocker", data, nil, len(reasons) > 0, strings.Join(reasons, "; ")), nil
+}
+
+func (c *Client) Control(ctx context.Context, operation string, params map[string]any, actorID string) (Envelope, error) {
+	if c.cfg.ControlSocket == "" {
+		err := errors.New("control transport unavailable")
+		return c.failure(operation, err), err
+	}
+	allowed := map[string]bool{"capabilities": true, "status": true, "positions": true, "orders": true, "history": true, "explain_blocker": true, "runtime_health": true, "pause_entries": true, "resume_entries": true, "latch_kill": true, "cancel_pending_plan": true, "plan_trade": true, "execute_plan": true}
+	if !allowed[operation] {
+		err := errors.New("unsupported trader20 operation")
+		return c.failure(operation, err), err
+	}
+	body, err := json.Marshal(map[string]any{"operation": operation, "params": params, "actor_id": actorID})
+	if err != nil {
+		return c.failure(operation, err), err
+	}
+	dialer := net.Dialer{Timeout: 5 * time.Second}
+	conn, err := dialer.DialContext(ctx, "unix", c.cfg.ControlSocket)
+	if err != nil {
+		return c.failure(operation, err), err
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(65 * time.Second))
+	if _, err = conn.Write(append(body, '\n')); err != nil {
+		return c.failure(operation, err), err
+	}
+	raw, err := io.ReadAll(io.LimitReader(conn, maxResponseSize+1))
+	if err != nil {
+		return c.failure(operation, err), err
+	}
+	if len(raw) > maxResponseSize {
+		err = errors.New("control response exceeds 4 MiB")
+		return c.failure(operation, err), err
+	}
+	var env Envelope
+	if err = json.Unmarshal(bytes.TrimSpace(raw), &env); err != nil {
+		return c.failure(operation, err), err
+	}
+	if env.Protocol != ProtocolVersion || (env.Operation != operation && env.Operation != "denied") {
+		err = errors.New("control response binding invalid")
+		return c.failure(operation, err), err
+	}
+	if env.Operation == "denied" || (env.Degraded && len(env.Data) == 0) {
+		err = errors.New(env.Reason)
+		return env, err
+	}
+	return env, nil
 }
 
 func (c *Client) info(ctx context.Context, typ string, payload map[string]any) (json.RawMessage, error) {

@@ -35,6 +35,10 @@ func builtinToolSeedData() []store.BuiltinToolDef {
 		{Name: "trader20_history", DisplayName: "Trader20 History", Description: "Read bounded Hyperliquid fill history", Category: "trader20", Enabled: false},
 		{Name: "trader20_explain_blocker", DisplayName: "Trader20 Explain Blocker", Description: "Explain fail-closed Trader20 availability", Category: "trader20", Enabled: false},
 		{Name: "trader20_runtime_health", DisplayName: "Trader20 Runtime Health", Description: "Read Hyperliquid provider and binding health", Category: "trader20", Enabled: false},
+		{Name: "trader20_pause_entries", DisplayName: "Trader20 Pause Entries", Description: "Enable the durable entry hold", Category: "trader20", Enabled: false},
+		{Name: "trader20_resume_entries", DisplayName: "Trader20 Resume Entries", Description: "Release the entry hold only after live gates pass", Category: "trader20", Enabled: false},
+		{Name: "trader20_latch_kill", DisplayName: "Trader20 Kill Latch", Description: "Latch the fail-closed entry kill", Category: "trader20", Enabled: false},
+		{Name: "trader20_cancel_pending_plan", DisplayName: "Trader20 Cancel Plan", Description: "Cancel an unexecuted exact plan", Category: "trader20", Enabled: false},
 		{Name: "trader20_plan_trade", DisplayName: "Trader20 Plan Trade", Description: "Submit an exact bounded plan request to Trader20 control", Category: "trader20", Enabled: false},
 		{Name: "trader20_execute_plan", DisplayName: "Trader20 Execute Plan", Description: "Submit an exact receipt-bound execution request to Trader20 control", Category: "trader20", Enabled: false},
 

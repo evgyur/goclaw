@@ -17,7 +17,9 @@ EXPECTED_TREE = "ebeb5797a17f51cad03a7cb595cfaf85a393937f"
 BOUNDED_TOOLS = {
     "trader20_capabilities", "trader20_status", "trader20_positions",
     "trader20_orders", "trader20_history", "trader20_explain_blocker",
-    "trader20_runtime_health", "trader20_plan_trade", "trader20_execute_plan", "coding_exec",
+    "trader20_runtime_health", "trader20_pause_entries", "trader20_resume_entries",
+    "trader20_latch_kill", "trader20_cancel_pending_plan", "trader20_plan_trade",
+    "trader20_execute_plan", "coding_exec",
 }
 DENIED = {
     "exec", "shell", "publish_skill", "skill_manage", "write_file", "edit",

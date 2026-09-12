@@ -11,6 +11,10 @@
     "history": "trader20_history",
     "explain_blocker": "trader20_explain_blocker",
     "runtime_health": "trader20_runtime_health",
+    "pause_entries": "trader20_pause_entries",
+    "resume_entries": "trader20_resume_entries",
+    "latch_kill": "trader20_latch_kill",
+    "cancel_pending_plan": "trader20_cancel_pending_plan",
     "plan_trade": "trader20_plan_trade",
     "execute_plan": "trader20_execute_plan"
   },

@@ -50,7 +50,8 @@ services:
       GOCLAW_OPENAI_API_KEY: ${H20_KEYS_API_KEY:?required}
       GOCLAW_TRACE_VERBOSE: "0"
       TRADER20_HYPERLIQUID_INFO_URL: https://api.hyperliquid.xyz/info
-      TRADER20_HYPERLIQUID_ACCOUNT: "0xce9A8BFe7f5A5A6DeAc8bcE0033d5335F3a2986d"
+      TRADER20_HYPERLIQUID_ACCOUNT: "0x5372a5801e673bd3142027f0d472feb017957b9b"
+      TRADER20_CONTROL_SOCKET: /run/trader20-haraldr-control/control.sock
       TRADER20_CANDIDATE_SHA: ${TRADER20_CANDIDATE_SHA:?required}
       TRADER20_POLICY_HASH: ${TRADER20_POLICY_HASH:?required}
       TRADER20_MAX_STALENESS_SECONDS: "30"
@@ -61,6 +62,7 @@ services:
     volumes:
       - haraldr-goclaw-data:/app/data
       - haraldr-goclaw-workspace:/app/workspace
+      - /run/trader20-haraldr-control:/run/trader20-haraldr-control:ro
     read_only: true
     tmpfs: ["/tmp:rw,noexec,nosuid,size=128m"]
     security_opt: ["no-new-privileges:true"]

@@ -1,0 +1,30 @@
+[Unit]
+Description=Haraldr narrow control broker for incumbent Trader20 v3
+After=trader20-v3-control-read.service
+Requires=trader20-v3-control-read.service
+ConditionPathExists=/opt/haraldr-goclaw/current/deploy/haraldr-goclaw/trader20_control_broker.py
+
+[Service]
+Type=simple
+User=root
+Group=trader20
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=TRADER20_OPERATOR_USER_ID=617744661
+RuntimeDirectory=trader20-haraldr-control
+RuntimeDirectoryMode=0750
+ExecStart=/usr/bin/python3 -B /opt/haraldr-goclaw/current/deploy/haraldr-goclaw/trader20_control_broker.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+CapabilityBoundingSet=
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/trader20-v3 /var/lib/trader20-v3/state /run/trader20-control-read
+ReadWritePaths=/var/lib/trader20-v3/state/haraldr-control /etc/trader20-v3/haraldr-control.env /run/trader20-haraldr-control
+RestrictAddressFamilies=AF_UNIX
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
