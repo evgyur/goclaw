@@ -413,7 +413,18 @@ class Handler(socketserver.StreamRequestHandler):
 def main() -> int:
     SOCKET.parent.mkdir(parents=True, exist_ok=True)
     if SOCKET.exists():
-        raise SystemExit("control_socket_already_exists")
+        # systemd serializes service instances; a pathname left after a crash
+        # has no listener and must not strand automatic recovery.
+        probe = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            probe.settimeout(0.2)
+            probe.connect(str(SOCKET))
+        except (ConnectionRefusedError, FileNotFoundError):
+            SOCKET.unlink(missing_ok=True)
+        else:
+            raise SystemExit("control_socket_already_exists")
+        finally:
+            probe.close()
     with socketserver.UnixStreamServer(str(SOCKET), Handler) as server:
         os.chmod(SOCKET, 0o660)
         server.serve_forever()
