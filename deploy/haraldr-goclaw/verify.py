@@ -12,8 +12,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-EXPECTED_COMMIT = "ef2f522df92ef8e9b4c8302c064a5a4ec506dc11"
-EXPECTED_TREE = "0923051451d94db9e1d4e06c65fdecbf9608f03a"
+EXPECTED_COMMIT = "e627d5634fcd4b47ef97a6b128515760bcbb507f"
+EXPECTED_TREE = "247ca24413d742ca9e87075f3e1c20a581dd7679"
 BOUNDED_TOOLS = {
     "trader20_capabilities", "trader20_status", "trader20_positions",
     "trader20_orders", "trader20_history", "trader20_explain_blocker",
