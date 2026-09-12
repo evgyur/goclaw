@@ -3,5 +3,5 @@
   "platform": "goclaw",
   "protocol": "trader20.control.v1",
   "schema": "trader20.skill-projection.v1",
-  "source_commit": "81344c55191a81b3fd0acb88e712fb1c26860a04"
+  "source_commit": "141c4c9c224ab62273feffcb445e2ade51cab185"
 }
