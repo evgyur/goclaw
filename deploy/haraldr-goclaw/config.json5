@@ -11,7 +11,7 @@
       "workspace": "/app/workspace",
       "restrict_to_workspace": true,
       "provider": "h20-keys",
-      "model": "h20-gpt",
+      "model": "h20-luna",
       "max_tokens": 4096,
       "temperature": 0.1,
       "max_tool_iterations": 8,

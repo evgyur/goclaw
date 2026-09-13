@@ -47,7 +47,7 @@ def payloads() -> dict[str, dict]:
             "display_name": "Haraldr Trader20",
             "agent_type": "predefined",
             "provider": "h20-keys",
-            "model": "h20-gpt",
+            "model": "h20-luna",
             "is_default": True,
             "max_tool_iterations": 8,
             "context_window": 131072,

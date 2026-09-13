@@ -38,7 +38,7 @@ class HaraldrGoClawReleaseTest(unittest.TestCase):
         agent = plans["agent"]
         self.assertEqual("predefined", agent["agent_type"])
         self.assertEqual("h20-keys", agent["provider"])
-        self.assertEqual("h20-gpt", agent["model"])
+        self.assertEqual("h20-luna", agent["model"])
         self.assertEqual(set(verifier.BOUNDED_TOOLS), set(agent["tools_config"]["allow"]))
         self.assertEqual(set(verifier.BOUNDED_TOOLS), set(agent["tools_config"]["alsoAllow"]))
         self.assertTrue(verifier.DENIED.issubset(set(agent["tools_config"]["deny"])))

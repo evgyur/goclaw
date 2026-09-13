@@ -129,7 +129,7 @@ def verify() -> dict:
         errors.append("provisioning channel is not disabled and credential-free")
     agent = provisioned["agent"]
     if (agent["agent_key"], agent["agent_type"], agent["provider"], agent["model"]) != (
-        "haraldr-trader20", "predefined", "h20-keys", "h20-gpt"
+        "haraldr-trader20", "predefined", "h20-keys", "h20-luna"
     ):
         errors.append("agent identity/provider/model mismatch")
     if agent["subagents_config"].get("enabled") is not False:
@@ -193,7 +193,7 @@ def verify() -> dict:
         "goclaw_projection_hash": built_projection_hash,
         "agent": "haraldr-trader20",
         "provider": "h20-keys",
-        "model": "h20-gpt",
+        "model": "h20-luna",
         "tool_allow_count": len(BOUNDED_TOOLS),
         "telegram_enabled": True,
         "activation_authorized": True,
